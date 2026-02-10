@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Check</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌤️ Weather Check</h1>
+            <p class="subtitle">Check the weather for any city</p>
+        </header>
+
+        <main>
+            <!-- Search Form -->
+            <div class="search-box">
+                <form method="POST" action="/">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            name="city" 
+                            id="city" 
+                            placeholder="Enter city name (e.g., London, Tokyo, New York)" 
+                            value="{{ city_searched or '' }}"
+                            required
+                        >
+                        <button type="submit">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Error Message -->
+            {% if error %}
+            <div class="alert alert-error">
+                <span class="alert-icon">⚠️</span>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Current Weather Display -->
+            {% if weather_data %}
+            <div class="weather-section">
+                <!-- Current Weather Card -->
+                <div class="current-weather">
+                    <div class="weather-header">
+                        <div>
+                            <h2>{{ weather_data.current.city }}, {{ weather_data.current.country }}</h2>
+                            <p class="weather-description">{{ weather_data.current.description | title }}</p>
+                        </div>
+                        <div class="weather-icon-large">
+                            <img src="https://openweathermap.org/img/wn/{{ weather_data.current.icon }}@4x.png" 
+                                 alt="{{ weather_data.current.description }}">
+                        </div>
+                    </div>
+
+                    <div class="temperature-display">
+                        <div class="temp-main">
+                            <span class="temp-value">{{ weather_data.current.temperature }}</span>
+                            <span class="temp-unit">°C</span>
+                        </div>
+                        <div class="temp-feels">
+                            Feels like {{ weather_data.current.feels_like }}°C
+                        </div>
+                    </div>
+
+                    <div class="weather-details">
+                        <div class="detail-item">
+                            <span class="detail-label">💧 Humidity</span>
+                            <span class="detail-value">{{ weather_data.current.humidity }}%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">💨 Wind Speed</span>
+                            <span class="detail-value">{{ weather_data.current.wind_speed }} m/s</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">🏢 Pressure</span>
+                            <span class="detail-value">{{ weather_data.current.pressure }} hPa</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">☁️ Cloudiness</span>
+                            <span class="detail-value">{{ weather_data.current.clouds }}%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">👁️ Visibility</span>
+                            <span class="detail-value">{{ (weather_data.current.visibility / 1000) | round(1) }} km</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5-Day Forecast -->
+                {% if weather_data.forecast and weather_data.forecast[0].date %}
+                <div class="forecast-section">
+                    <h3>5-Day Forecast</h3>
+                    <div class="forecast-grid">
+                        {% for day in weather_data.forecast %}
+                        <div class="forecast-card">
+                            <div class="forecast-date">
+                                {{ day.date }}
+                            </div>
+                            <div class="forecast-icon">
+                                <img src="https://openweathermap.org/img/wn/{{ day.icon }}@2x.png" 
+                                     alt="{{ day.description }}">
+                            </div>
+                            <div class="forecast-description">
+                                {{ day.description | title }}
+                            </div>
+                            <div class="forecast-temps">
+                                <span class="temp-max">{{ day.temp_max }}°</span>
+                                <span class="temp-min">{{ day.temp_min }}°</span>
+                            </div>
+                            <div class="forecast-details">
+                                <div>💧 {{ day.humidity }}%</div>
+                                <div>💨 {{ day.wind_speed }} m/s</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Welcome Message (when no search yet) -->
+            {% if not weather_data and not error %}
+            <div class="welcome-message">
+                <div class="welcome-icon">🌍</div>
+                <p>Enter a city name above to get started!</p>
+                <p class="welcome-subtitle">Get current weather conditions and a 5-day forecast</p>
+            </div>
+            {% endif %}
+        </main>
+
+        <footer>
+            <p>Weather data powered by OpenWeatherMap | Last updated: <span id="time">--:--</span></p>
+        </footer>
+    </div>
+
+    <script>
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const time = now.toLocaleTimeString();
+            document.getElementById('time').textContent = time;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
