@@ -1,0 +1,18 @@
+1770800620: mosquitto version 2.1.2 starting
+1770800620: Config loaded from /mosquitto/config/mosquitto.conf.
+1770800620: Bridge support available.
+1770800620: Persistence support available.
+1770800620: TLS support available.
+1770800620: TLS-PSK support available.
+1770800620: Websockets support available.
+1770800620: Opening ipv4 listen socket on port 1883.
+1770800620: Opening ipv6 listen socket on port 1883.
+1770800620: Opening ipv4 listen socket on port 9001.
+1770800620: Opening ipv6 listen socket on port 9001.
+1770800620: mosquitto version 2.1.2 running
+1770800642: New connection from 172.19.0.1:51656 on port 1883.
+1770800642: New client connected from 172.19.0.1:51656 as auto-0BDB89AE-F2EB-F861-B884-CC9D997E9C37 (p4, c1, k60).
+1770800642: Client auto-0BDB89AE-F2EB-F861-B884-CC9D997E9C37 [172.19.0.1:51656] disconnected: connection closed by client.
+1770800658: New connection from 172.19.0.1:44500 on port 1883.
+1770800658: New client connected from 172.19.0.1:44500 as auto-9A6730C9-A1D0-58E6-F5C9-8898428F091A (p4, c1, k60).
+1770800658: Client auto-9A6730C9-A1D0-58E6-F5C9-8898428F091A [172.19.0.1:44500] disconnected.

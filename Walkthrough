@@ -1,0 +1,38 @@
+Visual Overhaul Walkthrough
+I have completely revamped the Janggi game with a new "Royal Court" theme.
+
+🎨 Visual Changes
+1. Royal Court Theme (CSS/UI)
+Background: A deep, radial gradient (Dark Slate to Black) provides a premium atmosphere.
+Glassmorphism: The game panel now uses a frosted glass effect (backdrop-filter: blur) to blend seamlessly with the background.
+Typography: Integrated Noto Serif KR for a traditional yet modern look.
+2. Premium Board Rendering (Canvas)
+Wood Texture: The board now features a generated wood grain gradient (#e6c288 to #b08d55).
+Engraved Grid: Grid lines now have a slight shadow/highlight to appear "carved" into the wood.
+Palace Decoration: The Palace (Gung) area uses bolder lines and corner accents.
+3. 3D Stone Pieces (Canvas)
+Esthetic: Pieces now look like polished stones with:
+Gradient Body: Off-white/ivory radial gradients.
+Beveled Edge: Double-ring border for a 3D effect.
+Drop Shadow: Soft shadow to lift pieces off the board.
+Typography: Characters are rendered with an "engraved" shallow shadow effect.
+✨ New Mechanics
+Smooth Animations
+Movement: Pieces no longer teleport. They slide smoothly to their destination using a Cubic Ease-Out function.
+Visual Feedback:
+Valid Moves: Indicated by glowing blue dots (#29b6f6).
+Selection: The selected piece glows with a distinct blue aura.
+Code Changes
+Rendering: Completely rewrote 
+drawBoard
+ and 
+drawPiece
+ in 
+janggi.html
+.
+Logic: Added 
+animateMove
+ function and refactored the click event listener to support async animations.
+Open 
+janggi.html
+ in your browser to experience the new design!

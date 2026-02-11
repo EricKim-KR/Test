@@ -1,0 +1,28 @@
+Visual Upgrade Plan for Web Janggi
+The goal is to transform the basic Janggi game into a visually premium, modern web experience using "Rich Aesthetics" and "Dynamic Design".
+
+Proposed Changes
+1. Aesthetic Overhaul (CSS & UI)
+Background: Replace solid gray with a deep, elegant gradient (e.g., dark teal/slate) or a subtle texture to enhance contrast with the board.
+UI Panels: Use Glassmorphism (translucent white/dark backgrounds with blur) for the "Turn" indicator and buttons.
+Typography: Integrate a modern Korean font (e.g., 'Noto Serif KR' or Keep 'Apple SD Gothic Neo' but with better weight/spacing).
+Layout: Center the board perfectly with a nice shadow/glow.
+2. Board Rendering (Canvas)
+Texture: Simulate a wood grain pattern or use a warm, high-quality solid color with a gradient vignette.
+Grid: Sharper, maybe slightly glowing or etched lines.
+Palace: distinct marking for the palace (X-box) with decorative corners if possible.
+3. Piece Rendering (Canvas)
+Shape: Octagonal design (traditional) or high-quality Circle with 3D bevel effect (gradients + shadow).
+Typography: clear, bold characters.
+Selection: Glow effect instead of just a colored outline.
+Movement Guide: Subtle dots with pulsing animation for valid moves.
+4. Animation System (JS)
+Interpolation: Implement a basic animation loop (requestAnimationFrame) to slide pieces from (r1, c1) to (r2, c2) instead of teleporting.
+Easing: Use an ease-out function for natural movement.
+User Review Required
+None at this stage, proceeding with standard "Make it attractive" best practices.
+Verification Plan
+Manual Verification
+Check visual rendering of board and pieces.
+Verify animations are smooth and piece lands correctly.
+Ensure game logic remains intact (no regressions in moves).
