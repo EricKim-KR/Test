@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Labs Opal | AI Platform Insight</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        opal: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            300: '#7cc7fb',
+                            400: '#38a9f8',
+                            500: '#0e8de9',
+                            600: '#026fc7',
+                            700: '#0358a1',
+                            800: '#074b85',
+                            900: '#0c3f6e',
+                        },
+                        gemini: {
+                            blue: '#4285F4',
+                            purple: '#A142F4',
+                            pink: '#F442A1',
+                        }
+                    },
+                    animation: {
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .dark-glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gemini-gradient {
+            background: linear-gradient(135deg, #4285F4 0%, #A142F4 50%, #F442A1 100%);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #0e8de9 0%, #A142F4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body {
+            background: radial-gradient(circle at top right, #f0f7ff, #ffffff);
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="text-slate-900 font-sans antialiased">
+
+    <!-- Hero Section -->
+    <header class="relative pt-20 pb-16 px-6 overflow-hidden">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-20 pointer-events-none">
+            <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full gemini-gradient blur-[120px] animate-pulse"></div>
+            <div class="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full bg-opal-300 blur-[100px]"></div>
+        </div>
+
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="inline-flex items-center px-4 py-1.5 mb-6 rounded-full bg-white/50 border border-opal-100 text-opal-600 font-semibold text-sm tracking-wide uppercase">
+                <span class="relative flex h-2 w-2 mr-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-opal-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-opal-500"></span>
+                </span>
+                Now in Public Beta (US)
+            </div>
+            <h1 class="font-display text-6xl md:text-8xl font-extrabold tracking-tight mb-6">
+                Google Labs <span class="text-gradient">Opal</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed mb-10">
+                The experimental, no-code AI platform empowering everyone to build, test, and share mini-apps in natural language.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <div class="px-6 py-3 rounded-2xl glass-card font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5 text-opal-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+                    Public Beta: July 24, 2025
+                </div>
+                <div class="px-6 py-3 rounded-2xl glass-card font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5 text-opal-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.047a1 1 0 01.897.95V4h2a2 2 0 012 2v5a2 2 0 01-2 2h-2v3.282a1 1 0 01-1.664.75l-5.97-5.117A1 1 0 014 11V6a2 2 0 012-2h5V1.997a1 1 0 01.3-.95zM11.5 8.5v4.5l-4-3.429V8.5h4z" clip-rule="evenodd"></path></svg>
+                    Powered by Gemini
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl mx-auto px-6 pb-24">
+        
+        <!-- Feature Bento Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-16">
+            
+            <!-- Summary Card -->
+            <div class="md:col-span-8 group">
+                <div class="h-full p-8 md:p-12 rounded-[2.5rem] glass-card relative overflow-hidden transition-all duration-500 hover:shadow-2xl">
+                    <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                        <svg class="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </div>
+                    <h3 class="font-display text-3xl font-bold mb-6">Executive Summary</h3>
+                    <p class="text-lg text-slate-600 leading-relaxed">
+                        Opal is Google's bridge between complex AI engineering and everyday creativity. It serves as a <strong>no-code AI mini-app builder</strong> designed to translate natural language ideas into functional visual workflows. It's not just a chatbot; it's a factory for specialized "Opals" — bespoke applications tailored for productivity, education, and content creation.
+                    </p>
+                    <div class="mt-8 flex gap-4">
+                        <div class="bg-opal-50 px-4 py-2 rounded-xl border border-opal-100 text-opal-700 text-sm font-semibold">No-Code Logic</div>
+                        <div class="bg-opal-50 px-4 py-2 rounded-xl border border-opal-100 text-opal-700 text-sm font-semibold">Rapid Prototyping</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ecosystem Card -->
+            <div class="md:col-span-4">
+                <div class="h-full p-8 rounded-[2.5rem] bg-slate-900 text-white relative overflow-hidden transition-all duration-500 hover:shadow-opal-200/50 shadow-xl">
+                    <div class="absolute -bottom-10 -right-10 w-40 h-40 gemini-gradient rounded-full blur-3xl opacity-50"></div>
+                    <h3 class="font-display text-2xl font-bold mb-6">Google AI Ecosystem</h3>
+                    <ul class="space-y-6">
+                        <li class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0 border border-white/10">1</div>
+                            <div>
+                                <h4 class="font-semibold text-opal-300">Google AI Studio</h4>
+                                <p class="text-sm text-slate-400">For prompt engineering and API dev.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-opal-500/20 flex items-center justify-center shrink-0 border border-opal-500/30">2</div>
+                            <div>
+                                <h4 class="font-semibold text-opal-300">Gemini Canvas</h4>
+                                <p class="text-sm text-slate-400">Interactive document-style creation.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0 border border-white/10">3</div>
+                            <div>
+                                <h4 class="font-semibold text-white">Opal (The Builder)</h4>
+                                <p class="text-sm text-slate-400">Visual app building & sharing.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Key Features - Scrollable or Grid -->
+            <div class="md:col-span-12">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-8 rounded-[2.5rem] glass-card border-l-4 border-l-opal-500 group hover:bg-white transition-colors">
+                        <div class="w-12 h-12 bg-opal-100 rounded-2xl flex items-center justify-center mb-6 text-opal-600 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
+                        </div>
+                        <h4 class="font-display text-xl font-bold mb-3">Natural Language App Dev</h4>
+                        <p class="text-slate-600 leading-relaxed">Describe your idea, and Opal builds the visual workflow. No coding knowledge required.</p>
+                    </div>
+
+                    <div class="p-8 rounded-[2.5rem] glass-card border-l-4 border-l-purple-500 group hover:bg-white transition-colors">
+                        <div class="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 text-purple-600 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                        </div>
+                        <h4 class="font-display text-xl font-bold mb-3">Visual Workflow Editor</h4>
+                        <p class="text-slate-600 leading-relaxed">Fine-tune logic by chaining Gemini calls, web search, and custom APIs in a visual canvas.</p>
+                    </div>
+
+                    <div class="p-8 rounded-[2.5rem] glass-card border-l-4 border-l-pink-500 group hover:bg-white transition-colors">
+                        <div class="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center mb-6 text-pink-600 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                        </div>
+                        <h4 class="font-display text-xl font-bold mb-3">Instant Sharing</h4>
+                        <p class="text-slate-600 leading-relaxed">Remix starter templates from the demo gallery and share your "Opals" with others instantly.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Use Cases -->
+            <div class="md:col-span-12 mt-12">
+                <h3 class="font-display text-4xl font-bold mb-8 text-center">What can you build with <span class="text-opal-600">Opal?</span></h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="group relative overflow-hidden rounded-3xl h-48 flex flex-col justify-end p-6 bg-slate-100 hover:bg-white transition-all duration-500 border border-slate-200">
+                        <div class="absolute top-4 right-4 text-slate-300 group-hover:text-opal-400 transition-colors">
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path d="M9 4.804A7.993 7.993 0 0113.196 4h.804a1 1 0 011 1v11a1 1 0 01-1 1h-.804a7.993 7.993 0 00-4.196.804V4.804zM8 4.804A7.993 7.993 0 003.804 4h-.804a1 1 0 00-1 1v11a1 1 0 001 1h.804A7.993 7.993 0 018 16.804V4.804z"></path></svg>
+                        </div>
+                        <span class="block text-sm font-bold uppercase tracking-widest text-opal-500 mb-1">Education</span>
+                        <h5 class="text-lg font-bold">Study Helpers</h5>
+                        <p class="text-xs text-slate-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Convert notes into interactive quizzes.</p>
+                    </div>
+                    <div class="group relative overflow-hidden rounded-3xl h-48 flex flex-col justify-end p-6 bg-slate-100 hover:bg-white transition-all duration-500 border border-slate-200">
+                        <div class="absolute top-4 right-4 text-slate-300 group-hover:text-purple-400 transition-colors">
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg>
+                        </div>
+                        <span class="block text-sm font-bold uppercase tracking-widest text-purple-500 mb-1">Content</span>
+                        <h5 class="text-lg font-bold">Blog Generators</h5>
+                        <p class="text-xs text-slate-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">SEO-optimized post drafting from outlines.</p>
+                    </div>
+                    <div class="group relative overflow-hidden rounded-3xl h-48 flex flex-col justify-end p-6 bg-slate-100 hover:bg-white transition-all duration-500 border border-slate-200">
+                        <div class="absolute top-4 right-4 text-slate-300 group-hover:text-blue-400 transition-colors">
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <span class="block text-sm font-bold uppercase tracking-widest text-blue-500 mb-1">Inquiry</span>
+                        <h5 class="text-lg font-bold">Research Assistants</h5>
+                        <p class="text-xs text-slate-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Analyze papers and synthesize findings.</p>
+                    </div>
+                    <div class="group relative overflow-hidden rounded-3xl h-48 flex flex-col justify-end p-6 bg-slate-100 hover:bg-white transition-all duration-500 border border-slate-200">
+                        <div class="absolute top-4 right-4 text-slate-300 group-hover:text-pink-400 transition-colors">
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.535 5.01a1 1 0 011.415 0 2.5 2.5 0 003.24 0 1 1 0 111.414 1.415 4.5 4.5 0 01-6.07 0 1 1 0 010-1.415z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <span class="block text-sm font-bold uppercase tracking-widest text-pink-500 mb-1">Custom</span>
+                        <h5 class="text-lg font-bold">Productivity Tools</h5>
+                        <p class="text-xs text-slate-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Tailor-made apps for your unique workflow.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- References Section -->
+        <section class="max-w-4xl mx-auto mt-20 pt-12 border-t border-slate-100">
+            <h4 class="font-display text-2xl font-bold mb-8 text-center flex items-center justify-center gap-2">
+                <svg class="w-5 h-5 text-opal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                Deep Dive & Sources
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <a href="https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHpCopwOaEDJ9rb32IK-BH389xY8SSf2XUtoMaQbppsGm5aufURlOFPyFSn6CUp_LRmBQYwFZracpb1_gHyeRj68SRjlRhF5zle622gIpxgVDiXfkOo9XCUx_p_zg==" target="_blank" class="p-4 rounded-2xl glass-card flex flex-col items-center justify-center text-center transition-all hover:-translate-y-1 hover:border-opal-300">
+                    <span class="text-xs font-bold text-opal-600 mb-1 uppercase">Opal Tool</span>
+                    <span class="text-[10px] text-slate-400 truncate w-full">opaltool.com</span>
+                </a>
+                <a href="https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFO-B4NiHfrBVnpIMRs3KZ75Ag3QN86EP6vvPaN5As9V3j0l2oR-y55ZSpkB5_ghhEHDwDrr5icRscYp2-Llfmba1jcdREZ5GPC43vPikJBOlkUsWGcsGiLEIzU3y_rhfqNUXUsKwI3foF2QP8Ow4g_PUriciL4p3Nmrslu5JS2r7H2jHcHwk9OHq72u3mUFGDclHBCT5xFci0UW8o8cjY=" target="_blank" class="p-4 rounded-2xl glass-card flex flex-col items-center justify-center text-center transition-all hover:-translate-y-1 hover:border-opal-300">
+                    <span class="text-xs font-bold text-opal-600 mb-1 uppercase">InfoWorld</span>
+                    <span class="text-[10px] text-slate-400 truncate w-full">infoworld.com</span>
+                </a>
+                <a href="https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFpmKPWFHW_nxZ6z0hqyqGGQSZpl_hBFjHH-66XaDIaOP6G_nB7As_MY-00o9r45ZCbTqLMNvo1dZp7_9UGhX70sulbM2vaaBl4nHKAZZ1vso-rCF6AyM_GYN0VucR0eYpg4SBQ0A==" target="_blank" class="p-4 rounded-2xl glass-card flex flex-col items-center justify-center text-center transition-all hover:-translate-y-1 hover:border-opal-300">
+                    <span class="text-xs font-bold text-opal-600 mb-1 uppercase">AI Store</span>
+                    <span class="text-[10px] text-slate-400 truncate w-full">aiagentstore.ai</span>
+                </a>
+                <a href="https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFvb9gGy1o2bHRDTs50HN2EKxkIQ2qUA4vzzIW_f1cQYn8g6QjsdQch4vHzGWODDRFG9JPpzUXC9IeL4bqESSOJvATXk3nUkQAUigdShp7cJqRzQmCSXK7wGohp423zDCMnT_tG8lJHHkK6DRg=" target="_blank" class="p-4 rounded-2xl glass-card flex flex-col items-center justify-center text-center transition-all hover:-translate-y-1 hover:border-opal-300">
+                    <span class="text-xs font-bold text-opal-600 mb-1 uppercase">Google Blog</span>
+                    <span class="text-[10px] text-slate-400 truncate w-full">googleblog.com</span>
+                </a>
+                <a href="https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGt__PNP5nYNiuJfyARY7rkRe_ZlQmmLp8ddXKZcAftLMvnLzYFQqAKmMRtemHKU2sI_Uw2VyroYLuGKgVgJeJtf26KPVVC2NjAuOCQFh7PQFriMnP0OpcS2CYboMoZe4aDP0fpgDbqwNp4RAUv9PEtoLq8dkNvbg4_zf-ikjyBe0d4RrHAAEguwL1R5bnw2XDdKr-qwtSkoi4s1DvZINw0GdYP71GhxCGv_gQnF_qYgbCyyaxU" target="_blank" class="p-4 rounded-2xl glass-card col-span-2 md:col-span-1 flex flex-col items-center justify-center text-center transition-all hover:-translate-y-1 hover:border-opal-300">
+                    <span class="text-xs font-bold text-opal-600 mb-1 uppercase">Medium</span>
+                    <span class="text-[10px] text-slate-400 truncate w-full">medium.com</span>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Interactive Elements Trigger -->
+    <script>
+        // Smooth entrance for cards
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.glass-card, .bg-slate-900');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code: The Dawn of Vibe Coding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        @keyframes subtle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        @keyframes gradient-pan {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-subtle-float {
+            animation: subtle-float 6s ease-in-out infinite;
+        }
+        .gradient-text {
+            background-image: linear-gradient(135deg, #A78BFA, #F472B6, #60A5FA);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .gradient-border {
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            -webkit-background-clip: padding-box;
+            background-image: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+        }
+        .gradient-border-active {
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            -webkit-background-clip: padding-box;
+            background-image: linear-gradient(135deg, #A78BFA, #F472B6);
+        }
+        .bg-glass {
+            background: rgba(30, 30, 47, 0.4);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+        }
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s cubic-bezier(0.645, 0.045, 0.355, 1), transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        .scroll-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .glow-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, rgba(167, 139, 250, 0) 50%);
+            transform: translate(-50%, -50%);
+            animation: subtle-float 8s ease-in-out infinite reverse;
+            z-index: -1;
+        }
+        /* Custom scrollbar for a modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #11111b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a4a68;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6c6c9a;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Outfit', 'sans-serif'],
+                        'body': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#A78BFA', // Violet
+                        'secondary': '#F472B6', // Pink
+                        'accent': '#60A5FA', // Blue
+                        'dark-bg': '#0a0a14',
+                        'dark-card': '#12121e',
+                        'light-text': '#E0E0FF',
+                        'mid-text': '#a0a0c0',
+                    },
+                    animation: {
+                        'gradient-pan': 'gradient-pan 15s ease infinite',
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-dark-bg text-light-text font-body antialiased overflow-x-hidden">
+    <div class="relative min-h-screen">
+        <!-- Background Gradient Glow -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+            <div class="absolute top-[-20%] left-[-20%] w-[60vw] h-[60vw] max-w-lg max-h-lg bg-primary/20 rounded-full filter blur-3xl opacity-40 animate-subtle-float"></div>
+            <div class="absolute bottom-[-10%] right-[-15%] w-[50vw] h-[50vw] max-w-md max-h-md bg-secondary/20 rounded-full filter blur-3xl opacity-30 animate-subtle-float" style="animation-delay: -3s;"></div>
+        </div>
+
+        <main class="relative z-10 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+            <header class="text-center py-16 md:py-24 scroll-reveal">
+                <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter">
+                    <span class="gradient-text">Claude Code</span>
+                </h1>
+                <p class="mt-4 font-display text-2xl sm:text-3xl md:text-4xl text-light-text">The Dawn of Vibe Coding</p>
+                <p class="mt-6 max-w-3xl mx-auto text-mid-text text-base md:text-lg">
+                    An in-depth analysis of Anthropic's Agentic CLI and the paradigm shift towards AI-driven web development.
+                </p>
+            </header>
+
+            <div class="text-center mb-12 scroll-reveal">
+                <div id="lang-switcher" class="inline-flex items-center bg-dark-card p-1 rounded-full gradient-border">
+                    <button class="lang-btn active px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300" data-lang="ko">한국어</button>
+                    <button class="lang-btn px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300" data-lang="en">English</button>
+                </div>
+            </div>
+
+            <!-- Korean Content -->
+            <div id="content-ko" class="lang-content space-y-16">
+                <section class="scroll-reveal">
+                    <h2 class="font-display text-3xl font-bold mb-8 text-center"><span class="gradient-text">웹 개발의 핵심</span>과 AI의 역할</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-glass p-6 rounded-2xl gradient-border hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
+                            <h3 class="font-display text-xl font-bold text-accent">HTML (뼈대)</h3>
+                            <p class="mt-3 text-mid-text">AI가 시맨틱 마크업 자동 생성 및 SEO 최적화를 지원하여 웹사이트의 구조와 청사진을 효율적으로 정의합니다.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
+                            <h3 class="font-display text-xl font-bold text-secondary">CSS (디자인)</h3>
+                            <p class="mt-3 text-mid-text">AI가 복잡한 그리드 시스템, 반응형 레이아웃, 정교한 애니메이션 구현을 도와 시각적 완성도를 높입니다.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
+                            <h3 class="font-display text-xl font-bold text-primary">JS & AI (동작)</h3>
+                            <p class="mt-3 text-mid-text">비동기 로직, 상호작용, 지능형 데이터 처리를 AI가 보조하며, 에이전틱 자동 디버깅으로 개발 속도를 높입니다.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="scroll-reveal">
+                    <h2 class="font-display text-3xl font-bold mb-8 text-center">Claude Code <span class="gradient-text">핵심 기능</span></h2>
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <div class="bg-glass p-6 rounded-2xl gradient-border">
+                            <h3 class="font-display text-xl font-bold">전체 구조 이해 (Codebase Indexing)</h3>
+                            <p class="mt-2 text-mid-text">단일 파일 수정을 넘어 프로젝트 전체 맥락을 파악하고 여러 파일을 동시에 수정 및 조율하여 일관성을 유지합니다.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border">
+                            <h3 class="font-display text-xl font-bold">주도적 완성 (Autonomous Debugging)</h3>
+                            <p class="mt-2 text-mid-text">사용자의 간단한 명령만으로 빌드 오류를 진단하고, 테스트를 거쳐 완성도 높은 결과물을 자율적으로 도출합니다.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border">
+                            <h3 class="font-display text-xl font-bold">바이브 코딩 (Vibe Coding)</h3>
+                            <p class="mt-2 text-mid-text">복잡한 문법보다 개념과 의도(Vibe)를 전달하면, AI가 최적의 아키텍처와 코드를 구성하는 새로운 개발 방식입니다.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="scroll-reveal">
+                    <h2 class="font-display text-3xl font-bold mb-12 text-center"><span class="gradient-text">단계별 운영</span> 가이드</h2>
+                    <div class="relative max-w-3xl mx-auto">
+                        <!-- Connecting line -->
+                        <div class="absolute left-4 sm:left-6 top-6 h-full border-l-2 border-dashed border-white/20"></div>
+                        <div class="space-y-12">
+                            <!-- Level 1 -->
+                            <div class="relative pl-12 sm:pl-16">
+                                <div class="absolute left-0 top-0 flex items-center justify-center w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-accent text-dark-bg font-bold text-lg">1</div>
+                                <h3 class="font-display text-2xl font-bold text-accent mb-2">Level 1: 입문 단계</h3>
+                                <p class="text-mid-text"><code class="bg-dark-card px-2 py-1 rounded text-primary text-sm">/init</code>으로 프로젝트를 생성하고 <code class="bg-dark-card px-2 py-1 rounded text-primary text-sm">CLAUDE.md</code>로 규칙을 정의합니다. 자연어 프롬프트로 즉각적인 코드 생성이 가능합니다.</p>
+                            </div>
+                            <!-- Level 2 -->
+                            <div class="relative pl-12 sm:pl-16">
+                                <div class="absolute left-0 top-0 flex items-center justify-center w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-secondary text-dark-bg font-bold text-lg">2</div>
+                                <h3 class="font-display text-2xl font-bold text-secondary mb-2">Level 2: 생산성 극대화</h3>
+                                <p class="text-mid-text"><code class="bg-dark-card px-2 py-1 rounded text-primary text-sm">Plan Mode</code>로 작업 계획을 수립하고 <code class="bg-dark-card px-2 py-1 rounded text-primary text-sm">@파일명</code>으로 특정 파일 수정, 자동 승인으로 작업 속도를 비약적으로 향상시킵니다.</p>
+                            </div>
+                            <!-- Level 3 -->
+                            <div class="relative pl-12 sm:pl-16">
+                                <div class="absolute left-0 top-0 flex items-center justify-center w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-primary text-dark-bg font-bold text-lg">3</div>
+                                <h3 class="font-display text-2xl font-bold text-primary mb-2">Level 3: 전문가급 자율 엔지니어링</h3>
+                                <p class="text-mid-text"><code class="bg-dark-card px-2 py-1 rounded text-primary text-sm">Interview Mode</code>로 요구사항을 명확히 하고, <code class="bg-dark-card px-2 py-1 rounded text-primary text-sm">HANDOFF.md</code>로 상태를 보존하며, Git Worktrees로 병렬 작업을 수행합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center scroll-reveal">
+                    <div>
+                        <h2 class="font-display text-3xl font-bold mb-4">요금제 및 <span class="gradient-text">도입 가치</span></h2>
+                        <p class="text-mid-text mb-6">개발 가치와 시간 절감 효과를 고려하여 최적의 플랜을 선택할 수 있습니다. 수일이 소요되던 작업을 단 몇 시간 내에 완료하여 압도적인 ROI를 제공합니다.</p>
+                        <div class="space-y-4">
+                            <div class="bg-glass p-4 rounded-xl gradient-border">
+                                <p class="font-bold">Pro Plan: <span class="text-primary">$20/월</span> (기본 사용자)</p>
+                            </div>
+                            <div class="bg-glass p-4 rounded-xl gradient-border">
+                                <p class="font-bold">Max Plan: <span class="text-secondary">$100-$200/월</span> (전문 개발자)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-glass p-8 rounded-2xl text-center gradient-border">
+                         <h3 class="font-display text-2xl font-bold mb-2">개발자의 새로운 역량</h3>
+                         <p class="text-mid-text">이제 핵심 역량은 코드를 직접 치는 것이 아닌, AI에게 정확히 명령(<span class="text-primary font-semibold">Prompting</span>)하고 아키텍처를 설계하는 능력으로 이동하고 있습니다.</p>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- English Content -->
+            <div id="content-en" class="lang-content hidden space-y-16">
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center scroll-reveal">
+                    <div class="bg-glass p-8 rounded-2xl gradient-border">
+                        <div class="glow-effect"></div>
+                        <h2 class="font-display text-3xl font-bold mb-4">What is <span class="gradient-text">Vibe Coding?</span></h2>
+                        <p class="text-mid-text text-lg">Coined by Andrej Karpathy, vibe coding shifts the developer's role from writing code line-by-line to articulating intentions and desired outcomes in natural language. The AI acts as a partner, generating, refining, and debugging the code based on the developer's "vibe."</p>
+                    </div>
+                    <div class="space-y-4 text-mid-text">
+                        <p><strong>Key Aspects:</strong></p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><span class="font-semibold text-light-text">AI-driven Code Generation:</span> AI tools generate code based on user input.</li>
+                            <li><span class="font-semibold text-light-text">Natural Language Interaction:</span> Communication uses everyday language.</li>
+                            <li><span class="font-semibold text-light-text">Focus on Outcomes:</span> The goal is functionality, with AI managing code details.</li>
+                            <li><span class="font-semibold text-light-text">Evolving Developer Role:</span> Developers become architects and mentors to the AI.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="scroll-reveal">
+                    <h2 class="font-display text-3xl font-bold mb-8 text-center"><span class="gradient-text">Claude Code</span>: An Agentic AI Assistant</h2>
+                    <p class="text-center max-w-3xl mx-auto text-mid-text mb-12">Anthropic's Claude Code is a terminal-based development tool that is "agentic"—capable of planning, executing, and refining code with minimal human intervention.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-glass p-6 rounded-2xl gradient-border text-center">
+                            <h3 class="font-display text-xl font-bold text-accent">Core Tools</h3>
+                            <p class="mt-2 text-sm text-mid-text">Performs file manipulation, command execution, and code analysis.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border text-center">
+                            <h3 class="font-display text-xl font-bold text-secondary">Context Management</h3>
+                            <p class="mt-2 text-sm text-mid-text">Understands project structures and dependencies across multiple files.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border text-center">
+                            <h3 class="font-display text-xl font-bold text-primary">Advanced Modes</h3>
+                            <p class="mt-2 text-sm text-mid-text">Features "Plan Mode" and "Thinking Mode" for complex, multi-step tasks.</p>
+                        </div>
+                        <div class="bg-glass p-6 rounded-2xl gradient-border text-center">
+                            <h3 class="font-display text-xl font-bold" style="color:#6ee7b7;">IDE Integrations</h3>
+                            <p class="mt-2 text-sm text-mid-text">Supports VS Code, JetBrains, and GitHub for automated pull requests.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="scroll-reveal">
+                    <h2 class="font-display text-3xl font-bold mb-8 text-center">Complementary Tools for <span class="gradient-text">AI-Driven Development</span></h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-dark-card p-6 rounded-2xl transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
+                            <h3 class="font-display text-2xl font-bold mb-3">Git Worktrees</h3>
+                            <p class="text-mid-text">Enables multiple working directories from a single repository, perfect for parallel experimentation and testing of AI-generated code without context switching overhead.</p>
+                        </div>
+                        <div class="bg-dark-card p-6 rounded-2xl transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-secondary/20">
+                            <h3 class="font-display text-2xl font-bold mb-3">Cloudflare Pages</h3>
+                            <p class="text-mid-text">A JAMstack platform for instant, global deployment. Its Git integration and preview links create rapid feedback loops for iterating on AI-generated applications.</p>
+                        </div>
+                        <div class="bg-dark-card p-6 rounded-2xl transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-accent/20">
+                            <h3 class="font-display text-2xl font-bold mb-3">Vercel</h3>
+                            <p class="text-mid-text">An AI Cloud platform with first-class support for modern frameworks. Its AI SDK and rapid scaling provide robust infrastructure for building with LLMs.</p>
+                        </div>
+                    </div>
+                </section>
+
+                 <section class="scroll-reveal text-center max-w-4xl mx-auto">
+                     <h2 class="font-display text-3xl font-bold mb-4">The Future is <span class="gradient-text">Collaborative</span></h2>
+                     <p class="text-lg text-mid-text">
+                         Vibe coding, powered by agentic assistants like Claude Code, is reshaping software development. The ecosystem of tools like Git Worktrees, Cloudflare Pages, and Vercel accelerates this shift, empowering developers to focus on high-level architecture and problem-solving while AI handles the implementation.
+                     </p>
+                 </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Language Switcher Logic
+            const langSwitcher = document.getElementById('lang-switcher');
+            const langButtons = langSwitcher.querySelectorAll('.lang-btn');
+            const langContents = document.querySelectorAll('.lang-content');
+
+            langButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const selectedLang = button.dataset.lang;
+
+                    // Update button styles
+                    langButtons.forEach(btn => btn.classList.remove('active', 'text-white', 'bg-gradient-to-r', 'from-primary', 'to-secondary'));
+                    button.classList.add('active', 'text-white', 'bg-gradient-to-r', 'from-primary', 'to-secondary');
+                    
+                    // Show/hide content
+                    langContents.forEach(content => {
+                        if (content.id === `content-${selectedLang}`) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+            
+            // Set initial active state for the first button
+            langButtons[0].classList.add('active', 'text-white', 'bg-gradient-to-r', 'from-primary', 'to-secondary');
+
+            // Scroll Reveal Animation Logic
+            const revealElements = document.querySelectorAll('.scroll-reveal');
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+
+            revealElements.forEach(el => {
+                revealObserver.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
