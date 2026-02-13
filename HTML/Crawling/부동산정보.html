@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 매물 가격 분석기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border-top-color: #3498db;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        input::placeholder { font-size: 0.8rem; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-900 mb-2">실시간 부동산 매물 분석기</h1>
+            <p class="text-gray-500">원하는 지역과 조건을 설정하여 매물을 검색하세요.</p>
+        </header>
+
+        <!-- 상세 검색 필터 섹션 -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+                <!-- 1. 지역 선택 -->
+                <div class="space-y-1 lg:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700">지역 입력 (시/구/동)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="city" placeholder="시 (예: 서울시)" class="w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <input type="text" id="district" placeholder="구 (예: 강남구)" class="w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <input type="text" id="dong" placeholder="동 (예: 개포동)" class="w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    </div>
+                </div>
+
+                <!-- 2. 매물 종류 -->
+                <div class="space-y-1">
+                    <label class="block text-sm font-semibold text-gray-700">매물 종류</label>
+                    <select id="propertyType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <option value="APT">아파트</option>
+                        <option value="OPST">오피스텔</option>
+                        <option value="VL">빌라/연립</option>
+                        <option value="JWJT">전원주택</option>
+                    </select>
+                </div>
+
+                <!-- 3. 거래 유형 -->
+                <div class="space-y-1">
+                    <label class="block text-sm font-semibold text-gray-700">거래 유형</label>
+                    <select id="tradeType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <option value="ALL">전체보기</option>
+                        <option value="A1">매매</option>
+                        <option value="B1">전세</option>
+                        <option value="B2">월세</option>
+                    </select>
+                </div>
+
+                <!-- 4. 가격 범위 -->
+                <div class="space-y-1 lg:col-span-1">
+                    <label class="block text-sm font-semibold text-gray-700">가격 범위 (억 단위)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="minPrice" placeholder="최소" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <span class="text-gray-400">~</span>
+                        <input type="number" id="maxPrice" placeholder="최대" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    </div>
+                </div>
+
+                <!-- 5. 키워드 검색 -->
+                <div class="space-y-1 lg:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700">키워드 검색</label>
+                    <input type="text" id="keyword" placeholder="단지명, 특징 (예: 신축, 올수리, 급매)" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+
+                <!-- 검색 버튼 -->
+                <div class="flex items-end lg:col-span-1">
+                    <button onclick="fetchData()" id="searchBtn"
+                            class="w-full px-6 py-2 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 transition shadow-md">
+                        조건 검색 실행
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 분석 대시보드 (검색 후 노출) -->
+        <div id="aiDashboard" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <span>✨ AI 매물 분석 요약</span>
+                    </h3>
+                    <button onclick="generateAiSummary()" id="aiSummaryBtn" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">분석 업데이트</button>
+                </div>
+                <div id="aiSummaryContent" class="text-sm leading-relaxed opacity-90">
+                    검색 결과에 대한 AI의 종합적인 분석을 확인하려면 버튼을 누르세요.
+                </div>
+            </div>
+            <div class="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                        <span>✨ AI 추천 전략</span>
+                    </h3>
+                </div>
+                <div id="aiRecommendationContent" class="text-sm text-gray-600 italic">
+                    사용자의 조건과 키워드를 분석하여 최적의 제안을 드립니다.
+                </div>
+            </div>
+        </div>
+
+        <!-- 로딩 표시 -->
+        <div id="loading" class="hidden flex flex-col items-center justify-center py-20">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4 border-t-blue-500"></div>
+            <p class="text-gray-500 font-medium">데이터를 분석 중입니다...</p>
+        </div>
+
+        <!-- 결과 섹션 -->
+        <div id="results" class="hidden space-y-6">
+            <div class="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border-l-8 border-blue-600">
+                <div>
+                    <h2 id="locationInfo" class="text-lg font-bold text-gray-800">지역 결과</h2>
+                    <p id="filterSummary" class="text-xs text-gray-500 mt-1"></p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="downloadExcel()" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Excel 추출
+                    </button>
+                    <span id="resultCount" class="inline-block bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg">0건 발견</span>
+                </div>
+            </div>
+
+            <div class="overflow-hidden bg-white rounded-2xl shadow-xl">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">종류/유형</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">단지명 / 매물정보</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">가격</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">특징 키워드</th>
+                        </tr>
+                    </thead>
+                    <tbody id="articleList" class="divide-y divide-gray-100">
+                        <!-- 데이터 삽입 영역 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="emptyMsg" class="hidden mt-10 text-center py-20 bg-white rounded-2xl shadow-inner border-2 border-dashed border-gray-200">
+            <p class="text-gray-400 text-lg">조건에 맞는 매물이 없습니다.<br><span class="text-sm">검색어나 가격 범위를 조정해보세요.</span></p>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; // Gemini API Key
+        let lastFetchedData = [];
+
+        function parsePriceToNumber(priceStr) {
+            let total = 0;
+            const eokMatch = priceStr.match(/(\d+)억/);
+            const manMatch = priceStr.match(/억\s*([\d,ManMan]+)/) || priceStr.match(/^([\d,]+)$/);
+            
+            if (eokMatch) total += parseInt(eokMatch[1]);
+            if (manMatch) {
+                const manValue = parseInt(manMatch[1].replace(/,/g, ''));
+                total += manValue / 10000;
+            }
+            return total;
+        }
+
+        // CSV 다운로드 기능 구현
+        function downloadExcel() {
+            if (lastFetchedData.length === 0) return;
+
+            // CSV 헤더
+            let csvContent = "\uFEFF"; // 한글 깨짐 방지 BOM
+            csvContent += "종류,거래유형,단지명,층수,면적,가격,특징\n";
+
+            // 데이터 행 추가
+            lastFetchedData.forEach(item => {
+                const row = [
+                    item.type,
+                    item.tradeName,
+                    item.name,
+                    item.floor,
+                    item.area,
+                    item.price.replace(/,/g, ''), // 가격 내 쉼표 제거
+                    `"${item.desc.replace(/"/g, '""')}"` // 큰따옴표 처리
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            // 파일 생성 및 다운로드
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const fileName = `부동산매물_${new Date().toLocaleDateString()}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function callGeminiAPI(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (e) {
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+            throw new Error("API call failed after retries.");
+        }
+
+        async function generateAiSummary() {
+            if (lastFetchedData.length === 0) return;
+            
+            const summaryBox = document.getElementById('aiSummaryContent');
+            const recommendationBox = document.getElementById('aiRecommendationContent');
+            const btn = document.getElementById('aiSummaryBtn');
+            
+            btn.innerText = "분석 중...";
+            btn.disabled = true;
+            summaryBox.innerHTML = "매물 데이터를 기반으로 시장 상황을 분석하고 있습니다...";
+            recommendationBox.innerHTML = "맞춤형 전략을 구상하고 있습니다...";
+
+            const city = document.getElementById('city').value;
+            const district = document.getElementById('district').value;
+            const dataStr = JSON.stringify(lastFetchedData.map(d => ({ name: d.name, price: d.price, desc: d.desc })));
+
+            const prompt = `당신은 대한민국 부동산 전문가입니다. 다음은 ${city} ${district} 지역의 매물 데이터 리스트입니다: ${dataStr}. 
+            이 데이터를 분석하여 다음 두 가지를 제공하세요. 
+            1. '분석 요약': 매물들의 가격대 특징, 급매 여부, 시장 분위기를 3문장 이내로 요약.
+            2. '추천 전략': 실거주자와 투자자 각각에게 어울리는 매물 추천 또는 매수 전략 제안.
+            형식은 반드시 JSON으로 답변하세요: {"summary": "요약 내용", "recommendation": "추천 내용"}`;
+
+            try {
+                const responseText = await callGeminiAPI(prompt);
+                const cleanedResponse = responseText.replace(/```json|```/g, "").trim();
+                const result = JSON.parse(cleanedResponse);
+                
+                summaryBox.innerText = result.summary;
+                recommendationBox.innerText = result.recommendation;
+            } catch (error) {
+                summaryBox.innerText = "분석 리포트를 생성하는 데 실패했습니다.";
+                recommendationBox.innerText = "조건을 변경하여 다시 시도해주세요.";
+            } finally {
+                btn.innerText = "분석 업데이트";
+                btn.disabled = false;
+            }
+        }
+
+        async function fetchData() {
+            const city = document.getElementById('city').value;
+            const district = document.getElementById('district').value;
+            const dong = document.getElementById('dong').value;
+            const propertyType = document.getElementById('propertyType').options[document.getElementById('propertyType').selectedIndex].text;
+            const tradeType = document.getElementById('tradeType').value;
+            const minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
+            const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+            const keyword = document.getElementById('keyword').value.trim().toLowerCase();
+
+            if (!city || !district) return alert('최소 시, 구 정보는 입력하셔야 합니다.');
+
+            const searchBtn = document.getElementById('searchBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const emptyMsg = document.getElementById('emptyMsg');
+            const articleList = document.getElementById('articleList');
+            const aiDashboard = document.getElementById('aiDashboard');
+
+            searchBtn.disabled = true;
+            loading.classList.remove('hidden');
+            results.classList.add('hidden');
+            aiDashboard.classList.add('hidden');
+            emptyMsg.classList.add('hidden');
+            articleList.innerHTML = '';
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                const allMockData = [
+                    { name: "개포자이", type: "아파트", tradeCode: "A1", tradeName: "매매", price: "28억 5,000", floor: "12/22층", area: "134/168㎡", desc: "올수리된 깨끗한 매물, 급매" },
+                    { name: "래미안 블레스티지", type: "아파트", tradeCode: "A1", tradeName: "매매", price: "32억 0,000", floor: "18/35층", area: "84/114㎡", desc: "신축급 컨디션, 조경 우수" },
+                    { name: "디에이치 아너힐즈", type: "아파트", tradeCode: "B1", tradeName: "전세", price: "16억 5,000", floor: "10/33층", area: "84/114㎡", desc: "풀옵션, 즉시입주 가능" },
+                    { name: "삼성동 빌라트", type: "빌라/연립", tradeCode: "A1", tradeName: "매매", price: "12억 8,000", floor: "2/5층", area: "60/75㎡", desc: "역세권, 조용한 주택가" },
+                    { name: "논현 오피스", type: "오피스텔", tradeCode: "B2", tradeName: "월세", price: "5,000/250", floor: "15/20층", area: "30/50㎡", desc: "주차 가능, 보안 철저" },
+                    { name: "개포 우성", type: "아파트", tradeCode: "A1", tradeName: "매매", price: "25억 0,000", floor: "5/15층", area: "101/120㎡", desc: "재건축 기대주, 올수리" }
+                ];
+
+                const filtered = allMockData.filter(item => {
+                    if (item.type !== propertyType) return false;
+                    if (tradeType !== 'ALL' && item.tradeCode !== tradeType) return false;
+                    if (item.tradeCode !== 'B2') {
+                        const p = parsePriceToNumber(item.price);
+                        if (p < minPrice || p > maxPrice) return false;
+                    }
+                    if (keyword && !item.name.toLowerCase().includes(keyword) && !item.desc.toLowerCase().includes(keyword)) {
+                        return false;
+                    }
+                    return true;
+                });
+
+                lastFetchedData = filtered;
+
+                document.getElementById('locationInfo').innerText = `${city} ${district} ${dong} 검색 결과`;
+                document.getElementById('filterSummary').innerText = `${propertyType} | ${tradeType === 'ALL' ? '전체거래' : tradeType} | ${minPrice}억~${maxPrice === Infinity ? '무제한' : maxPrice + '억'}`;
+                document.getElementById('resultCount').innerText = `${filtered.length}건 발견`;
+
+                if (filtered.length === 0) {
+                    emptyMsg.classList.remove('hidden');
+                } else {
+                    filtered.forEach(item => {
+                        const typeColor = item.tradeName === '매매' ? 'text-red-600 bg-red-50' : 
+                                         item.tradeName === '전세' ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50';
+                        
+                        const row = `
+                            <tr class="hover:bg-blue-50/30 transition">
+                                <td class="px-6 py-5 text-center">
+                                    <div class="text-[10px] text-gray-400 mb-1 font-bold">${item.type}</div>
+                                    <span class="px-3 py-1 text-xs font-bold rounded-full ${typeColor}">
+                                        ${item.tradeName}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <p class="font-bold text-gray-900 text-base">${item.name}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${item.floor} · ${item.area}</p>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <span class="text-lg font-extrabold text-blue-800">${item.price}</span>
+                                </td>
+                                <td class="px-6 py-5">
+                                    <p class="text-sm text-gray-600 leading-relaxed">${item.desc}</p>
+                                </td>
+                            </tr>
+                        `;
+                        articleList.innerHTML += row;
+                    });
+                    results.classList.remove('hidden');
+                    aiDashboard.classList.remove('hidden');
+                    generateAiSummary();
+                }
+            } catch (error) {
+                alert('데이터 처리 중 오류 발생');
+            } finally {
+                loading.classList.add('hidden');
+                searchBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
