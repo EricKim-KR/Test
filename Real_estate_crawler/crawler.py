@@ -28,9 +28,15 @@ class NaverRealEstateCrawler:
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
         try:
-            service = Service(ChromeDriverManager().install())
+            import os
+            driver_path = ChromeDriverManager().install()
+            if not driver_path.endswith(".exe"):
+                dir_path = os.path.dirname(driver_path)
+                driver_path = os.path.join(dir_path, "chromedriver.exe")
+            
+            service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            logger.info("WebDriver 초기화 성공")
+            logger.info(f"WebDriver 초기화 성공: {driver_path}")
         except Exception as e:
             logger.error(f"WebDriver 초기화 실패: {e}")
             raise
