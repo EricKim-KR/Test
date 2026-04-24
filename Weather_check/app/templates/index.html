@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Check</title>
+    <title>날씨 확인 - Weather Check</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🌤️ Weather Check</h1>
-            <p class="subtitle">Check the weather for any city</p>
+            <h1>🌤️ 날씨 확인</h1>
+            <p class="subtitle">전 세계 어디의 날씨도 확인해보세요</p>
         </header>
 
         <main>
@@ -22,11 +23,11 @@
                             type="text" 
                             name="city" 
                             id="city" 
-                            placeholder="Enter city name (e.g., London, Tokyo, New York)" 
+                            placeholder="도시명을 입력하세요 (예: 서울, 도쿄, 뉴욕)" 
                             value="{{ city_searched or '' }}"
                             required
                         >
-                        <button type="submit" id="search-btn">Search</button>
+                        <button type="submit" id="search-btn">검색</button>
                     </div>
                 </form>
             </div>
@@ -34,7 +35,7 @@
             <!-- Loading Spinner -->
             <div id="loading" class="loading-container" style="display: none;">
                 <div class="spinner"></div>
-                <p>Fetching weather data...</p>
+                <p>날씨 정보를 불러오는 중입니다...</p>
             </div>
 
             <!-- Error Message -->
@@ -42,10 +43,10 @@
             <div class="alert alert-error">
                 <span class="alert-icon">⚠️</span>
                 <div>
-                    <strong>Error:</strong> {{ error }}
-                    {% if 'API key' in error %}
+                    <strong>오류:</strong> {{ error }}
+                    {% if 'API 키' in error or 'API key' in error %}
                     <p style="margin-top: 8px; font-size: 0.9rem;">
-                        Please make sure you have set your <code>WEATHER_API_KEY</code> in the <code>.env</code> file.
+                        <code>.env</code> 파일에 <code>WEATHER_API_KEY</code>를 설정했는지 확인해주세요.
                     </p>
                     {% endif %}
                 </div>
@@ -74,29 +75,29 @@
                             <span class="temp-unit">°C</span>
                         </div>
                         <div class="temp-feels">
-                            Feels like {{ weather_data.current.feels_like }}°C
+                            체감온도 {{ weather_data.current.feels_like }}°C
                         </div>
                     </div>
 
                     <div class="weather-details">
                         <div class="detail-item">
-                            <span class="detail-label">💧 Humidity</span>
+                            <span class="detail-label">💧 습도</span>
                             <span class="detail-value">{{ weather_data.current.humidity }}%</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">💨 Wind Speed</span>
+                            <span class="detail-label">💨 풍속</span>
                             <span class="detail-value">{{ weather_data.current.wind_speed }} m/s</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">🏢 Pressure</span>
+                            <span class="detail-label">🏢 기압</span>
                             <span class="detail-value">{{ weather_data.current.pressure }} hPa</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">☁️ Cloudiness</span>
+                            <span class="detail-label">☁️ 구름</span>
                             <span class="detail-value">{{ weather_data.current.clouds }}%</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">👁️ Visibility</span>
+                            <span class="detail-label">👁️ 시야</span>
                             <span class="detail-value">{{ (weather_data.current.visibility / 1000) | round(1) }} km</span>
                         </div>
                     </div>
@@ -105,7 +106,7 @@
                 <!-- 5-Day Forecast -->
                 {% if weather_data.forecast and weather_data.forecast[0].date %}
                 <div class="forecast-section">
-                    <h3>5-Day Forecast</h3>
+                    <h3>5일 예보</h3>
                     <div class="forecast-grid">
                         {% for day in weather_data.forecast %}
                         <div class="forecast-card">
@@ -139,14 +140,14 @@
             {% if not weather_data and not error %}
             <div class="welcome-message">
                 <div class="welcome-icon">🌍</div>
-                <p>Enter a city name above to get started!</p>
-                <p class="welcome-subtitle">Get current weather conditions and a 5-day forecast</p>
+                <p>위에 도시명을 입력하여 시작하세요!</p>
+                <p class="welcome-subtitle">현재 날씨와 5일 예보를 확인해보세요</p>
             </div>
             {% endif %}
         </main>
 
         <footer>
-            <p>Weather data powered by OpenWeatherMap | Last updated: <span id="time">--:--</span></p>
+            <p>날씨 정보 제공: OpenWeatherMap | 마지막 업데이트: <span id="time">--:--</span></p>
         </footer>
     </div>
 
@@ -154,7 +155,7 @@
         // Update time
         function updateTime() {
             const now = new Date();
-            const time = now.toLocaleTimeString();
+            const time = now.toLocaleTimeString('ko-KR');
             document.getElementById('time').textContent = time;
         }
         updateTime();

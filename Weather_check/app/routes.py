@@ -15,9 +15,9 @@ def index():
         city_searched = city
         
         if not city:
-            error = 'Please enter a city name.'
+            error = '도시명을 입력해주세요.'
         else:
-            # Fetch weather data
+            # Fetch weather data (handles Korean to English conversion)
             result = WeatherService.get_weather(city)
             
             if 'error' in result:
@@ -34,7 +34,7 @@ def index():
 def api_weather(city):
     """API endpoint for fetching weather data"""
     if not city:
-        return jsonify({'error': 'City name required'}), 400
+        return jsonify({'error': '도시명이 필요합니다'}), 400
     
     result = WeatherService.get_weather(city)
     
