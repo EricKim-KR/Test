@@ -1,9 +1,12 @@
 import requests
+import time
 from flask import current_app
 
 class WeatherService:
     """Service for fetching weather data from OpenWeatherMap API"""
     
+    _cache = {}
+
     @staticmethod
     def get_weather(city):
         """
@@ -15,6 +18,15 @@ class WeatherService:
         Returns:
             dict: Weather data or error dict
         """
+        city = city.lower().strip()
+
+        # Check cache
+        cache_timeout = current_app.config.get('CACHE_TIMEOUT', 600)
+        if city in WeatherService._cache:
+            data, timestamp = WeatherService._cache[city]
+            if time.time() - timestamp < cache_timeout:
+                return data
+
         try:
             api_key = current_app.config.get('WEATHER_API_KEY')
             base_url = current_app.config.get('WEATHER_API_URL')
@@ -22,7 +34,7 @@ class WeatherService:
             if not api_key:
                 return {'error': 'API key not configured'}
             
-            # Get current weather and forecast in one call using weather + forecast endpoint
+            # Get current weather and forecast
             current_weather = WeatherService._get_current_weather(city, api_key, base_url)
             if 'error' in current_weather:
                 return current_weather
@@ -31,10 +43,15 @@ class WeatherService:
             if 'error' in forecast:
                 return forecast
             
-            return {
+            result = {
                 'current': current_weather,
                 'forecast': forecast
             }
+
+            # Update cache
+            WeatherService._cache[city] = (result, time.time())
+
+            return result
         
         except Exception as e:
             return {'error': f'An error occurred: {str(e)}'}
@@ -72,6 +89,8 @@ class WeatherService:
         except requests.exceptions.HTTPError as e:
             if response.status_code == 404:
                 return {'error': 'City not found. Please check the spelling and try again.'}
+            if response.status_code == 401:
+                return {'error': 'Invalid API key. Please check your configuration.'}
             return {'error': f'Weather API error: {response.status_code}'}
         except requests.exceptions.Timeout:
             return {'error': 'Request timed out. Please try again.'}
@@ -117,7 +136,9 @@ class WeatherService:
             
             return forecast_list[:5]  # Return 5-day forecast
         
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 401:
+                return {'error': 'Invalid API key. Please check your configuration.'}
             return {'error': 'Error fetching forecast'}
         except requests.exceptions.Timeout:
             return {'error': 'Request timed out'}

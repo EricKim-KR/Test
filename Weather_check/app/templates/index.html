@@ -26,16 +26,29 @@
                             value="{{ city_searched or '' }}"
                             required
                         >
-                        <button type="submit">Search</button>
+                        <button type="submit" id="search-btn">Search</button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading" class="loading-container" style="display: none;">
+                <div class="spinner"></div>
+                <p>Fetching weather data...</p>
             </div>
 
             <!-- Error Message -->
             {% if error %}
             <div class="alert alert-error">
                 <span class="alert-icon">⚠️</span>
-                {{ error }}
+                <div>
+                    <strong>Error:</strong> {{ error }}
+                    {% if 'API key' in error %}
+                    <p style="margin-top: 8px; font-size: 0.9rem;">
+                        Please make sure you have set your <code>WEATHER_API_KEY</code> in the <code>.env</code> file.
+                    </p>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
 
@@ -146,6 +159,24 @@
         }
         updateTime();
         setInterval(updateTime, 1000);
+
+        // Show loading state
+        document.querySelector('form').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('search-btn').disabled = true;
+            const weatherSection = document.querySelector('.weather-section');
+            if (weatherSection) {
+                weatherSection.style.opacity = '0.5';
+            }
+            const welcomeMsg = document.querySelector('.welcome-message');
+            if (welcomeMsg) {
+                welcomeMsg.style.display = 'none';
+            }
+            const errorMsg = document.querySelector('.alert-error');
+            if (errorMsg) {
+                errorMsg.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>

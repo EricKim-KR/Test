@@ -111,6 +111,31 @@ button[type="submit"]:active {
     transform: translateY(0);
 }
 
+/* Loading State */
+.loading-container {
+    text-align: center;
+    padding: 40px;
+    margin-bottom: 30px;
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(0, 102, 204, 0.1);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Alerts */
 .alert {
     padding: 16px 20px;
