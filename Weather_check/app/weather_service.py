@@ -1,9 +1,13 @@
 import requests
+import time
+import concurrent.futures
 from flask import current_app
 
 class WeatherService:
     """Service for fetching weather data from OpenWeatherMap API"""
     
+    _cache = {}
+
     @staticmethod
     def get_weather(city):
         """
@@ -18,23 +22,40 @@ class WeatherService:
         try:
             api_key = current_app.config.get('WEATHER_API_KEY')
             base_url = current_app.config.get('WEATHER_API_URL')
+            cache_timeout = current_app.config.get('CACHE_TIMEOUT', 600)
             
             if not api_key:
                 return {'error': 'API key not configured'}
             
-            # Get current weather and forecast in one call using weather + forecast endpoint
-            current_weather = WeatherService._get_current_weather(city, api_key, base_url)
-            if 'error' in current_weather:
-                return current_weather
+            # Check cache
+            city_key = city.lower().strip()
+            if city_key in WeatherService._cache:
+                data, timestamp = WeatherService._cache[city_key]
+                if time.time() - timestamp < cache_timeout:
+                    return data
             
-            forecast = WeatherService._get_forecast(city, api_key, base_url)
-            if 'error' in forecast:
-                return forecast
+            # Get current weather and forecast in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                future_current = executor.submit(WeatherService._get_current_weather, city, api_key, base_url)
+                future_forecast = executor.submit(WeatherService._get_forecast, city, api_key, base_url)
+
+                current_weather = future_current.result()
+                if 'error' in current_weather:
+                    return current_weather
+
+                forecast = future_forecast.result()
+                if 'error' in forecast:
+                    return forecast
             
-            return {
+            result = {
                 'current': current_weather,
                 'forecast': forecast
             }
+
+            # Update cache
+            WeatherService._cache[city_key] = (result, time.time())
+
+            return result
         
         except Exception as e:
             return {'error': f'An error occurred: {str(e)}'}

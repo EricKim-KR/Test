@@ -21,7 +21,7 @@ class NaverRealEstateCrawler:
     def setup_driver(self):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")  # 백그라운드 모드
+        chrome_options.add_argument("--headless")  # 백그라운드 모드
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
@@ -60,29 +60,26 @@ class NaverRealEstateCrawler:
             
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
-            time.sleep(2)
             
             # 검색어 입력
             try:
                 search_input = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "input_search"))
+                    EC.element_to_be_clickable((By.CLASS_NAME, "input_search"))
                 )
                 search_keyword = f"{city} {district} {dong}".strip()
                 search_input.clear()
                 search_input.send_keys(search_keyword)
-                time.sleep(1)
                 
                 # 첫 번째 검색 결과 클릭
                 try:
                     suggestion = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "keyword_list_item"))
+                        EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
                     )
                     suggestion.click()
                 except:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
                 
-                time.sleep(3)
             except Exception as e:
                 logger.error(f"검색 입력 실패: {e}")
             
@@ -98,9 +95,14 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # 페이지 로딩 대기
-            time.sleep(2)
-            
+            # 페이지 로딩 대기 (매물 리스트가 나타날 때까지)
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item"))
+                )
+            except:
+                logger.warning("매물 리스트 로딩 타임아웃")
+
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -193,7 +195,6 @@ class NaverRealEstateCrawler:
             
             logger.info(f"빌라 검색 시작: {keyword}")
             self.driver.get(url)
-            time.sleep(3)
             
             properties = self.extract_properties("all", min_price, max_price)
             return properties
@@ -208,9 +209,23 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
+import concurrent.futures
+
+def crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price):
+    """단일 매물 종류 크롤링을 위한 헬퍼 함수"""
+    crawler = NaverRealEstateCrawler()
+    try:
+        if prop_type.upper() == 'APT':
+            return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
+        elif prop_type.upper() == 'VILLA':
+            return crawler.search_villas(city, district, dong, min_price, max_price)
+        return []
+    finally:
+        crawler.close()
+
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
-    부동산 매물 크롤링 함수
+    부동산 매물 크롤링 함수 (병렬 처리 지원)
     
     Args:
         city: 시
@@ -227,21 +242,20 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     if property_types is None:
         property_types = ['APT']
     
-    crawler = NaverRealEstateCrawler()
     all_properties = []
     
-    try:
-        for prop_type in property_types:
-            if prop_type.upper() == 'APT':
-                properties = crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
-            elif prop_type.upper() == 'VILLA':
-                properties = crawler.search_villas(city, district, dong, min_price, max_price)
-            else:
-                continue
-            
-            all_properties.extend(properties)
+    # 병렬 처리를 사용하여 여러 매물 종류를 동시에 크롤링
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(property_types)) as executor:
+        future_to_type = {
+            executor.submit(crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price): prop_type
+            for prop_type in property_types
+        }
         
-        return all_properties
-    
-    finally:
-        crawler.close()
+        for future in concurrent.futures.as_completed(future_to_type):
+            try:
+                properties = future.result()
+                all_properties.extend(properties)
+            except Exception as e:
+                logger.error(f"Property type {future_to_type[future]} crawling failed: {e}")
+
+    return all_properties
