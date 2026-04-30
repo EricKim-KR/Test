@@ -50,7 +50,7 @@ def test_get_weather_success(app, mocker):
                 return mock_forecast_resp
             return None
 
-        mocker.patch('requests.get', side_effect=side_effect)
+        mocker.patch.object(WeatherService._session, 'get', side_effect=side_effect)
 
         result = WeatherService.get_weather('London')
 
@@ -67,29 +67,29 @@ def test_get_weather_city_not_found(app, mocker):
         mock_resp.status_code = 404
         mock_resp.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_resp)
 
-        mocker.patch('requests.get', return_value=mock_resp)
+        mocker.patch.object(WeatherService._session, 'get', return_value=mock_resp)
 
         result = WeatherService.get_weather('InvalidCity')
 
         assert 'error' in result
-        assert 'City not found' in result['error']
+        assert '도시를 찾을 수 없습니다' in result['error']
 
 def test_get_weather_no_api_key(app):
     with app.app_context():
         WeatherService._cache = {}
         app.config['WEATHER_API_KEY'] = ''
         result = WeatherService.get_weather('London')
-        assert result['error'] == 'API key not configured'
+        assert result['error'] == 'API 키가 설정되지 않았습니다'
 
 def test_get_weather_timeout(app, mocker):
     with app.app_context():
         WeatherService._cache = {}
-        mocker.patch('requests.get', side_effect=requests.exceptions.Timeout())
+        mocker.patch.object(WeatherService._session, 'get', side_effect=requests.exceptions.Timeout())
 
         result = WeatherService.get_weather('London')
 
         assert 'error' in result
-        assert 'timed out' in result['error']
+        assert '시간 초과' in result['error']
 
 def test_get_weather_invalid_api_key(app, mocker):
     with app.app_context():
@@ -98,9 +98,9 @@ def test_get_weather_invalid_api_key(app, mocker):
         mock_resp.status_code = 401
         mock_resp.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_resp)
 
-        mocker.patch('requests.get', return_value=mock_resp)
+        mocker.patch.object(WeatherService._session, 'get', return_value=mock_resp)
 
         result = WeatherService.get_weather('London')
 
         assert 'error' in result
-        assert 'Invalid API key' in result['error']
+        assert 'API 키가 유효하지 않습니다' in result['error']
