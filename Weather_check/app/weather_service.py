@@ -1,11 +1,13 @@
 import requests
 import time
 from flask import current_app
+from concurrent.futures import ThreadPoolExecutor
 
 class WeatherService:
     """Service for fetching weather data from OpenWeatherMap API"""
     
     _cache = {}
+    _session = requests.Session()
     
     # 한글 도시명 → 영문 도시명 매핑
     KOREAN_CITY_MAP = {
@@ -137,14 +139,25 @@ class WeatherService:
             if not api_key:
                 return {'error': 'API 키가 설정되지 않았습니다'}
             
-            # Get current weather and forecast
-            current_weather = WeatherService._get_current_weather(city, api_key, base_url, original_city)
-            if 'error' in current_weather:
-                return current_weather
-            
-            forecast = WeatherService._get_forecast(city, api_key, base_url)
-            if 'error' in forecast:
-                return forecast
+            # Use ThreadPoolExecutor to parallelize API calls
+            # Extract current_app config before entering threads
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_current = executor.submit(
+                    WeatherService._get_current_weather,
+                    city, api_key, base_url, original_city
+                )
+                future_forecast = executor.submit(
+                    WeatherService._get_forecast,
+                    city, api_key, base_url
+                )
+
+                current_weather = future_current.result()
+                if 'error' in current_weather:
+                    return current_weather
+
+                forecast = future_forecast.result()
+                if 'error' in forecast:
+                    return forecast
             
             result = {
                 'current': current_weather,
@@ -170,7 +183,8 @@ class WeatherService:
         }
         
         try:
-            response = requests.get(url, params=params, timeout=5)
+            # Use session for connection pooling
+            response = WeatherService._session.get(url, params=params, timeout=5)
             response.raise_for_status()
             data = response.json()
             
@@ -215,7 +229,8 @@ class WeatherService:
         }
         
         try:
-            response = requests.get(url, params=params, timeout=5)
+            # Use session for connection pooling
+            response = WeatherService._session.get(url, params=params, timeout=5)
             response.raise_for_status()
             data = response.json()
             
