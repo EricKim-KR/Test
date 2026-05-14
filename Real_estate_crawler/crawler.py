@@ -9,16 +9,18 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NaverRealEstateCrawler:
-    def __init__(self):
+    def __init__(self, driver_path=None):
         self.driver = None
-        self.setup_driver()
+        self.setup_driver(driver_path)
     
-    def setup_driver(self):
+    def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
         # chrome_options.add_argument("--headless")  # 백그라운드 모드
@@ -28,11 +30,19 @@ class NaverRealEstateCrawler:
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
         try:
-            import os
-            driver_path = ChromeDriverManager().install()
-            if not driver_path.endswith(".exe"):
-                dir_path = os.path.dirname(driver_path)
-                driver_path = os.path.join(dir_path, "chromedriver.exe")
+            if not driver_path:
+                driver_path = ChromeDriverManager().install()
+
+                # Linux 환경에서 ChromeDriverManager가 가끔 THIRD_PARTY_NOTICES 같은 텍스트 파일을 반환하는 문제 대응
+                if os.path.basename(driver_path).startswith("THIRD_PARTY_NOTICES"):
+                    dir_path = os.path.dirname(driver_path)
+                    actual_binary = os.path.join(dir_path, "chromedriver")
+                    if os.path.exists(actual_binary):
+                        driver_path = actual_binary
+
+                # 실행 권한 부여 (Linux/macOS)
+                if os.name != 'nt' and os.path.exists(driver_path):
+                    os.chmod(driver_path, 0o755)
             
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -214,9 +224,24 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
+def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price, driver_path=None):
+    """
+    단일 매물 종류 크롤링을 위한 헬퍼 함수
+    각 스레드에서 독립적인 크롤러 인스턴스를 사용합니다.
+    """
+    crawler = NaverRealEstateCrawler(driver_path=driver_path)
+    try:
+        if prop_type.upper() == 'APT':
+            return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
+        elif prop_type.upper() == 'VILLA':
+            return crawler.search_villas(city, district, dong, min_price, max_price)
+        return []
+    finally:
+        crawler.close()
+
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
-    부동산 매물 크롤링 함수
+    부동산 매물 크롤링 함수 (병렬 처리 최적화)
     
     Args:
         city: 시
@@ -233,21 +258,40 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     if property_types is None:
         property_types = ['APT']
     
-    crawler = NaverRealEstateCrawler()
     all_properties = []
     
+    # ChromeDriver 사전 설치 (메인 스레드에서 한 번만 수행하여 스레드 간 경쟁 상태 방지)
     try:
-        for prop_type in property_types:
-            if prop_type.upper() == 'APT':
-                properties = crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
-            elif prop_type.upper() == 'VILLA':
-                properties = crawler.search_villas(city, district, dong, min_price, max_price)
-            else:
-                continue
-            
-            all_properties.extend(properties)
+        driver_path = ChromeDriverManager().install()
+        if os.path.basename(driver_path).startswith("THIRD_PARTY_NOTICES"):
+            dir_path = os.path.dirname(driver_path)
+            actual_binary = os.path.join(dir_path, "chromedriver")
+            if os.path.exists(actual_binary):
+                driver_path = actual_binary
         
-        return all_properties
-    
-    finally:
-        crawler.close()
+        if os.name != 'nt' and os.path.exists(driver_path):
+            os.chmod(driver_path, 0o755)
+    except Exception as e:
+        logger.error(f"ChromeDriver 설치 실패: {e}")
+        driver_path = None
+
+    # ThreadPoolExecutor를 사용하여 매물 종류별로 병렬 크롤링 수행
+    # ⚡ Bolt Optimization:
+    # 1. 병렬 처리: APT, VILLA 등 여러 매물 종류 검색 시 독립적인 드라이버 인스턴스로 병렬 실행하여 응답 시간 단축.
+    #    (매물 종류가 2개 이상일 때 약 1.5x ~ 2x 속도 개선 예상)
+    # 2. Linux 호환성: ChromeDriverManager의 비정상 경로 반환 대응 및 실행 권한 자동 설정 로직 추가.
+    # 3. 안정성: 메인 스레드에서 드라이버를 미리 설치하여 멀티스레드 환경에서의 파일 시스템 충돌 방지.
+    with ThreadPoolExecutor(max_workers=len(property_types)) as executor:
+        futures = [
+            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price, driver_path)
+            for prop_type in property_types
+        ]
+
+        for future in futures:
+            try:
+                properties = future.result()
+                all_properties.extend(properties)
+            except Exception as e:
+                logger.error(f"병렬 크롤링 중 오류 발생: {e}")
+
+    return all_properties
