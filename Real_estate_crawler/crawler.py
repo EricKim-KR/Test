@@ -1,5 +1,7 @@
 import json
 import time
+import os
+from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,26 +16,53 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NaverRealEstateCrawler:
-    def __init__(self):
+    def __init__(self, driver_path=None):
         self.driver = None
-        self.setup_driver()
+        self.setup_driver(driver_path)
     
-    def setup_driver(self):
+    @staticmethod
+    def resolve_driver_path(driver_path=None):
+        """플랫폼별 드라이버 경로를 해결하고 필요한 경우 실행 권한을 설정합니다."""
+        try:
+            if not driver_path:
+                driver_path = ChromeDriverManager().install()
+
+            # 플랫폼별 드라이버 경로 처리
+            if os.name == 'nt':  # Windows
+                if not driver_path.endswith(".exe"):
+                    dir_path = os.path.dirname(driver_path)
+                    possible_exe = os.path.join(dir_path, "chromedriver.exe")
+                    if os.path.exists(possible_exe):
+                        driver_path = possible_exe
+            else:  # Linux/Mac
+                if not os.access(driver_path, os.X_OK):
+                    # 때때로 ChromeDriverManager가 메타데이터 파일을 반환할 수 있음
+                    dir_path = os.path.dirname(driver_path)
+                    possible_bin = os.path.join(dir_path, "chromedriver")
+                    if os.path.exists(possible_bin):
+                        driver_path = possible_bin
+
+                    # 실행 권한 부여
+                    try:
+                        os.chmod(driver_path, 0o755)
+                    except Exception as e:
+                        logger.warning(f"드라이버 권한 설정 실패: {e}")
+            return driver_path
+        except Exception as e:
+            logger.error(f"드라이버 경로 해결 실패: {e}")
+            return driver_path
+
+    def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")  # 백그라운드 모드
+        chrome_options.add_argument("--headless=new")  # 백그라운드 모드 활성화 (성능 향상)
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
         try:
-            import os
-            driver_path = ChromeDriverManager().install()
-            if not driver_path.endswith(".exe"):
-                dir_path = os.path.dirname(driver_path)
-                driver_path = os.path.join(dir_path, "chromedriver.exe")
-            
+            driver_path = self.resolve_driver_path(driver_path)
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             logger.info(f"WebDriver 초기화 성공: {driver_path}")
@@ -214,9 +243,26 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
+def _search_worker(prop_type, city, district, dong, trade_type, min_price, max_price, driver_path):
+    """별도 스레드에서 크롤링을 수행하는 워커 함수"""
+    crawler = None
+    try:
+        crawler = NaverRealEstateCrawler(driver_path=driver_path)
+        if prop_type.upper() == 'APT':
+            return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
+        elif prop_type.upper() == 'VILLA':
+            return crawler.search_villas(city, district, dong, min_price, max_price)
+        return []
+    except Exception as e:
+        logger.error(f"워커 실행 중 오류 ({prop_type}): {e}")
+        return []
+    finally:
+        if crawler:
+            crawler.close()
+
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
-    부동산 매물 크롤링 함수
+    부동산 매물 크롤링 함수 (병렬 실행 지원)
     
     Args:
         city: 시
@@ -233,21 +279,31 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     if property_types is None:
         property_types = ['APT']
     
-    crawler = NaverRealEstateCrawler()
+    if not property_types:
+        return []
+
+    # 메인 스레드에서 드라이버를 한 번만 설치하여 레이스 컨디션 방지
+    driver_path = NaverRealEstateCrawler.resolve_driver_path()
+
     all_properties = []
     
-    try:
-        for prop_type in property_types:
-            if prop_type.upper() == 'APT':
-                properties = crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
-            elif prop_type.upper() == 'VILLA':
-                properties = crawler.search_villas(city, district, dong, min_price, max_price)
-            else:
-                continue
-            
-            all_properties.extend(properties)
+    # ThreadPoolExecutor를 사용하여 여러 매물 종류를 병렬로 크롤링
+    # I/O 바운드 작업(Selenium)이므로 성능 향상 기대
+    with ThreadPoolExecutor(max_workers=min(len(property_types), 4)) as executor:
+        futures = [
+            executor.submit(
+                _search_worker,
+                prop_type, city, district, dong,
+                trade_type, min_price, max_price, driver_path
+            )
+            for prop_type in property_types
+        ]
         
-        return all_properties
+        for future in futures:
+            try:
+                properties = future.result()
+                all_properties.extend(properties)
+            except Exception as e:
+                logger.error(f"결과 수집 중 오류: {e}")
     
-    finally:
-        crawler.close()
+    return all_properties
