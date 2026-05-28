@@ -14,14 +14,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NaverRealEstateCrawler:
-    def __init__(self):
+    def __init__(self, driver_path=None):
         self.driver = None
-        self.setup_driver()
+        self.setup_driver(driver_path)
     
-    def setup_driver(self):
+    def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")  # 백그라운드 모드
+        chrome_options.add_argument("--headless")  # ⚡ Bolt: Headless mode for better performance
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
@@ -29,10 +29,24 @@ class NaverRealEstateCrawler:
         
         try:
             import os
-            driver_path = ChromeDriverManager().install()
-            if not driver_path.endswith(".exe"):
-                dir_path = os.path.dirname(driver_path)
-                driver_path = os.path.join(dir_path, "chromedriver.exe")
+            if not driver_path:
+                driver_path = ChromeDriverManager().install()
+
+                # Handle Windows-specific case where manager might return root path
+                if os.name == 'nt' and not driver_path.lower().endswith(".exe"):
+                    potential_exe = os.path.join(os.path.dirname(driver_path), "chromedriver.exe")
+                    if os.path.exists(potential_exe):
+                        driver_path = potential_exe
+
+            # ⚡ Bolt: Ensure executable permissions on Linux/Mac
+            if os.name != 'nt' and os.path.exists(driver_path):
+                # Check if it's actually the binary (ChromeDriverManager sometimes returns a path to a LICENSE file etc.)
+                if os.path.basename(driver_path) == 'THIRD_PARTY_NOTICES':
+                    potential_binary = os.path.join(os.path.dirname(driver_path), "chromedriver")
+                    if os.path.exists(potential_binary):
+                        driver_path = potential_binary
+
+                os.chmod(driver_path, 0o755)
             
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -66,29 +80,28 @@ class NaverRealEstateCrawler:
             
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
-            time.sleep(2)
+
+            # ⚡ Bolt: Replace static sleep with dynamic wait
+            wait = WebDriverWait(self.driver, 10)
             
             # 검색어 입력
             try:
-                search_input = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "input_search"))
+                search_input = wait.until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "input_search"))
                 )
                 search_keyword = f"{city} {district} {dong}".strip()
                 search_input.clear()
                 search_input.send_keys(search_keyword)
-                time.sleep(1)
                 
                 # 첫 번째 검색 결과 클릭
                 try:
-                    suggestion = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "keyword_list_item"))
+                    suggestion = wait.until(
+                        EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
                     )
                     suggestion.click()
                 except:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
-                
-                time.sleep(3)
             except Exception as e:
                 logger.error(f"검색 입력 실패: {e}")
             
@@ -104,8 +117,12 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # 페이지 로딩 대기
-            time.sleep(2)
+            # ⚡ Bolt: Replace static sleep with dynamic wait for items to load
+            wait = WebDriverWait(self.driver, 10)
+            try:
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item")))
+            except:
+                logger.warning("매물 리스트 로딩 대기 시간 초과")
             
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
@@ -199,7 +216,7 @@ class NaverRealEstateCrawler:
             
             logger.info(f"빌라 검색 시작: {keyword}")
             self.driver.get(url)
-            time.sleep(3)
+            # ⚡ Bolt: No static sleep needed here as extract_properties handles waiting
             
             properties = self.extract_properties("all", min_price, max_price)
             return properties
@@ -214,9 +231,11 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
+from concurrent.futures import ThreadPoolExecutor
+
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
-    부동산 매물 크롤링 함수
+    부동산 매물 크롤링 함수 (병렬 처리 최적화)
     
     Args:
         city: 시
@@ -233,21 +252,45 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     if property_types is None:
         property_types = ['APT']
     
-    crawler = NaverRealEstateCrawler()
+    # ⚡ Bolt: Install/locate driver once to reuse path in parallel threads
+    try:
+        driver_path = ChromeDriverManager().install()
+        # Same path logic as in setup_driver for consistency
+        import os
+        if os.name == 'nt' and not driver_path.lower().endswith(".exe"):
+            potential_exe = os.path.join(os.path.dirname(driver_path), "chromedriver.exe")
+            if os.path.exists(potential_exe):
+                driver_path = potential_exe
+        elif os.name != 'nt' and os.path.basename(driver_path) == 'THIRD_PARTY_NOTICES':
+            potential_binary = os.path.join(os.path.dirname(driver_path), "chromedriver")
+            if os.path.exists(potential_binary):
+                driver_path = potential_binary
+    except Exception as e:
+        logger.error(f"Driver installation failed: {e}")
+        driver_path = None
+
     all_properties = []
     
-    try:
-        for prop_type in property_types:
+    def fetch_by_type(prop_type):
+        """Thread worker to fetch properties of a specific type"""
+        # ⚡ Bolt: Each thread needs its own crawler instance (and thus its own WebDriver session)
+        # to avoid race conditions and session conflicts.
+        crawler = NaverRealEstateCrawler(driver_path=driver_path)
+        try:
             if prop_type.upper() == 'APT':
-                properties = crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
+                return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
             elif prop_type.upper() == 'VILLA':
-                properties = crawler.search_villas(city, district, dong, min_price, max_price)
-            else:
-                continue
-            
-            all_properties.extend(properties)
-        
-        return all_properties
+                return crawler.search_villas(city, district, dong, min_price, max_price)
+            return []
+        finally:
+            crawler.close()
+
+    # ⚡ Bolt: Parallelize property fetching across multiple types
+    max_workers = min(len(property_types), 4)
+    if max_workers > 0:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(fetch_by_type, property_types))
+            for props in results:
+                all_properties.extend(props)
     
-    finally:
-        crawler.close()
+    return all_properties
