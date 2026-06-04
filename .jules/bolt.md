@@ -9,3 +9,7 @@
 ## 2026-05-07 - [Selenium Driver Resolution on Linux]
 **Learning:** `webdriver-manager` can sometimes return a path to a non-executable metadata file (e.g., `THIRD_PARTY_NOTICES.chromedriver`) on Linux. A robust crawler must detect this, locate the actual binary in the same directory, and ensure it has executable permissions via `os.chmod`.
 **Action:** Always verify the returned `driver_path` from `ChromeDriverManager().install()` and apply necessary fixes for Linux environments to ensure reliable browser initialization.
+
+## 2026-05-14 - [Optimized NaverRealEstateCrawler Setup and Latency]
+**Learning:** Resolving the driver binary path once in the main thread and passing it to worker threads avoids redundant I/O and network checks by `ChromeDriverManager`. Additionally, removing legacy `time.sleep()` calls in favor of existing `WebDriverWait` significantly reduces idle time during crawling.
+**Action:** Pre-calculate setup parameters in the main thread for parallel tasks, and regularly audit for hardcoded delays that can be replaced with event-driven waits.

@@ -15,11 +15,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NaverRealEstateCrawler:
-    def __init__(self):
+    def __init__(self, driver_path=None):
         self.driver = None
-        self.setup_driver()
+        self.setup_driver(driver_path)
     
-    def setup_driver(self):
+    @staticmethod
+    def get_driver_path():
+        """ChromeDriverManager를 사용하여 드라이버 경로를 가져오고 필요한 설정을 수행합니다."""
+        import os
+        driver_path = ChromeDriverManager().install()
+
+        # webdriver-manager 4.0.1+ might return a path to a text file in some environments
+        # Ensure we point to the actual binary if it's a directory or incorrect file
+        if os.path.isdir(driver_path):
+            driver_path = os.path.join(driver_path, "chromedriver")
+        elif "THIRD_PARTY_NOTICES" in driver_path:
+            dir_path = os.path.dirname(driver_path)
+            possible_binary = os.path.join(dir_path, "chromedriver")
+            if os.path.exists(possible_binary):
+                driver_path = possible_binary
+
+        # Ensure the driver is executable
+        if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
+            os.chmod(driver_path, 0o755)
+
+        return driver_path
+
+    def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
         chrome_options.add_argument("--headless")  # 백그라운드 모드
@@ -29,22 +51,8 @@ class NaverRealEstateCrawler:
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
         try:
-            import os
-            driver_path = ChromeDriverManager().install()
-
-            # webdriver-manager 4.0.1+ might return a path to a text file in some environments
-            # Ensure we point to the actual binary if it's a directory or incorrect file
-            if os.path.isdir(driver_path):
-                driver_path = os.path.join(driver_path, "chromedriver")
-            elif "THIRD_PARTY_NOTICES" in driver_path:
-                dir_path = os.path.dirname(driver_path)
-                possible_binary = os.path.join(dir_path, "chromedriver")
-                if os.path.exists(possible_binary):
-                    driver_path = possible_binary
-            
-            # Ensure the driver is executable
-            if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
-                os.chmod(driver_path, 0o755)
+            if not driver_path:
+                driver_path = self.get_driver_path()
 
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -78,7 +86,6 @@ class NaverRealEstateCrawler:
             
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
-            time.sleep(2)
             
             # 검색어 입력
             try:
@@ -116,8 +123,7 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # 페이지 로딩 대기
-            time.sleep(2)
+            # 페이지 로딩 대기 (WebDriverWait이 사용되는 곳에서는 불필요한 sleep 제거)
             
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
@@ -226,9 +232,9 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
-def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price):
+def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price, driver_path=None):
     """단일 매물 종류 크롤링을 위한 헬퍼 함수 (병렬 실행용)"""
-    crawler = NaverRealEstateCrawler()
+    crawler = NaverRealEstateCrawler(driver_path=driver_path)
     try:
         if prop_type.upper() == 'APT':
             return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
@@ -261,12 +267,15 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
             return []
     
     all_properties = []
+
+    # 병렬 처리를 위해 드라이버 설치를 메인 스레드에서 한 번만 수행
+    driver_path = NaverRealEstateCrawler.get_driver_path()
     
     # 여러 매물 종류를 요청한 경우 병렬로 처리하여 속도 향상
     # ThreadPoolExecutor를 사용하여 각 매물 종류별로 독립된 브라우저 인스턴스 실행
     with ThreadPoolExecutor(max_workers=len(property_types)) as executor:
         futures = [
-            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price)
+            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price, driver_path)
             for prop_type in property_types
         ]
         
