@@ -9,3 +9,7 @@
 ## 2026-05-07 - [Selenium Driver Resolution on Linux]
 **Learning:** `webdriver-manager` can sometimes return a path to a non-executable metadata file (e.g., `THIRD_PARTY_NOTICES.chromedriver`) on Linux. A robust crawler must detect this, locate the actual binary in the same directory, and ensure it has executable permissions via `os.chmod`.
 **Action:** Always verify the returned `driver_path` from `ChromeDriverManager().install()` and apply necessary fixes for Linux environments to ensure reliable browser initialization.
+
+## 2026-05-20 - [Selenium Crawler Bottleneck Reduction]
+**Learning:** Replaced fixed `time.sleep()` with `WebDriverWait` and shared a single ChromeDriver binary path across concurrent threads. This reduced parallel crawling time for dual property types (APT & VILLA) by ~50% (from 44s to 22s).
+**Action:** Always prefer explicit waits over fixed sleeps and pre-resolve/share expensive environment resources like WebDriver binaries when using parallel executors.
