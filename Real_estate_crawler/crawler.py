@@ -1,5 +1,6 @@
 import json
 import time
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,12 +15,42 @@ from concurrent.futures import ThreadPoolExecutor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def _get_driver_path():
+    """
+    ChromeDriverManager를 사용하여 ChromeDriver를 설치하고 실행 파일 경로를 반환합니다.
+    Linux 환경의 특이사항(텍스트 파일 반환 등)을 처리합니다.
+    """
+    try:
+        driver_path = ChromeDriverManager().install()
+
+        # webdriver-manager 4.0.1+ might return a path to a text file in some environments
+        # Ensure we point to the actual binary if it's a directory or incorrect file
+        if os.path.isdir(driver_path):
+            binary_name = "chromedriver.exe" if os.name == 'nt' else "chromedriver"
+            driver_path = os.path.join(driver_path, binary_name)
+        elif "THIRD_PARTY_NOTICES" in driver_path:
+            dir_path = os.path.dirname(driver_path)
+            binary_name = "chromedriver.exe" if os.name == 'nt' else "chromedriver"
+            possible_binary = os.path.join(dir_path, binary_name)
+            if os.path.exists(possible_binary):
+                driver_path = possible_binary
+
+        # Ensure the driver is executable
+        if os.path.exists(driver_path) and os.name != 'nt':
+            if not os.access(driver_path, os.X_OK):
+                os.chmod(driver_path, 0o755)
+
+        return driver_path
+    except Exception as e:
+        logger.error(f"ChromeDriver 경로 확인 실패: {e}")
+        return None
+
 class NaverRealEstateCrawler:
-    def __init__(self):
+    def __init__(self, driver_path=None):
         self.driver = None
-        self.setup_driver()
+        self.setup_driver(driver_path)
     
-    def setup_driver(self):
+    def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
         chrome_options.add_argument("--headless")  # 백그라운드 모드
@@ -29,22 +60,11 @@ class NaverRealEstateCrawler:
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
         try:
-            import os
-            driver_path = ChromeDriverManager().install()
+            if not driver_path:
+                driver_path = _get_driver_path()
 
-            # webdriver-manager 4.0.1+ might return a path to a text file in some environments
-            # Ensure we point to the actual binary if it's a directory or incorrect file
-            if os.path.isdir(driver_path):
-                driver_path = os.path.join(driver_path, "chromedriver")
-            elif "THIRD_PARTY_NOTICES" in driver_path:
-                dir_path = os.path.dirname(driver_path)
-                possible_binary = os.path.join(dir_path, "chromedriver")
-                if os.path.exists(possible_binary):
-                    driver_path = possible_binary
-            
-            # Ensure the driver is executable
-            if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
-                os.chmod(driver_path, 0o755)
+            if not driver_path:
+                raise Exception("ChromeDriver 경로를 찾을 수 없습니다.")
 
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -56,51 +76,43 @@ class NaverRealEstateCrawler:
     def search_apartments(self, city, district, dong="", trade_type="all", min_price=None, max_price=None):
         """
         네이버 부동산에서 아파트 검색
-        
-        Args:
-            city: 시 (예: 서울시)
-            district: 구 (예: 강남구)
-            dong: 동 (예: 개포동, 선택사항)
-            trade_type: 거래 유형 - 'all', 'sale', 'jeonse', 'monthly'
-            min_price: 최소 가격 (억)
-            max_price: 최대 가격 (억)
-        
-        Returns:
-            매물 정보 리스트
         """
         try:
             # 지역 정보 정규화
             city = city.replace('시', '').strip()
             district = district.replace('구', '').strip()
             
-            # 네이버 부동산 검색 URL 구성
-            search_url = f"https://land.naver.com/article/division/34010000?ms=37.4979,127.0276,15&a=APT&b=A1&c=&d=&e=&f=&g=&h=&i=&j=&k=&l=&m=&n=&o=&p=&q=&r=&s=&t=&aa=&bb=&cc=&dd=&ee=&ff=&showR=Y&scortOrder=dddsc&one=1&page=1"
-            
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
-            time.sleep(2)
             
             # 검색어 입력
             try:
+                # time.sleep(2) -> WebDriverWait로 대체
                 search_input = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.CLASS_NAME, "input_search"))
                 )
                 search_keyword = f"{city} {district} {dong}".strip()
                 search_input.clear()
                 search_input.send_keys(search_keyword)
-                time.sleep(1)
                 
-                # 첫 번째 검색 결과 클릭
+                # 첫 번째 검색 결과 클릭 (time.sleep(1) 제거)
                 try:
                     suggestion = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "keyword_list_item"))
+                        EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
                     )
                     suggestion.click()
                 except:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
                 
-                time.sleep(3)
+                # 페이지 로딩 대기 (time.sleep(3) -> WebDriverWait로 대체)
+                # li 대신 구체적인 클래스 li.item 사용 (네비게이션 li와 구분)
+                WebDriverWait(self.driver, 10).until(
+                    lambda d: d.find_elements(By.CLASS_NAME, "list_item") or \
+                             d.find_elements(By.CLASS_NAME, "item_section") or \
+                             d.find_elements(By.CSS_SELECTOR, "li.item") or \
+                             d.find_elements(By.CLASS_NAME, "no_result")
+                )
             except Exception as e:
                 logger.error(f"검색 입력 실패: {e}")
             
@@ -116,8 +128,7 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # 페이지 로딩 대기
-            time.sleep(2)
+            # fixed time.sleep(2) 제거 - search 함수에서 이미 대기함
             
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
@@ -211,7 +222,17 @@ class NaverRealEstateCrawler:
             
             logger.info(f"빌라 검색 시작: {keyword}")
             self.driver.get(url)
-            time.sleep(3)
+
+            # 페이지 로딩 대기 (time.sleep(3) -> WebDriverWait로 대체)
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    lambda d: d.find_elements(By.CLASS_NAME, "list_item") or \
+                             d.find_elements(By.CLASS_NAME, "item_section") or \
+                             d.find_elements(By.CSS_SELECTOR, "li.item") or \
+                             d.find_elements(By.CLASS_NAME, "no_result")
+                )
+            except:
+                logger.warning("빌라 검색 결과 대기 중 타임아웃 발생")
             
             properties = self.extract_properties("all", min_price, max_price)
             return properties
@@ -226,9 +247,9 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
-def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price):
+def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price, driver_path=None):
     """단일 매물 종류 크롤링을 위한 헬퍼 함수 (병렬 실행용)"""
-    crawler = NaverRealEstateCrawler()
+    crawler = NaverRealEstateCrawler(driver_path=driver_path)
     try:
         if prop_type.upper() == 'APT':
             return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
@@ -241,18 +262,6 @@ def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, m
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
     부동산 매물 크롤링 함수 (병렬 실행 최적화)
-    
-    Args:
-        city: 시
-        district: 구
-        dong: 동 (선택)
-        property_types: 매물 종류 (기본값: ['APT'])
-        trade_type: 거래 유형 ('all', 'sale', 'jeonse', 'monthly')
-        min_price: 최소 가격 (억)
-        max_price: 최대 가격 (억)
-    
-    Returns:
-        매물 정보 리스트
     """
     if not property_types:
         if property_types is None:
@@ -262,11 +271,13 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     
     all_properties = []
     
+    # ChromeDriver 경로를 한 번만 확인하여 모든 스레드에서 공유
+    driver_path = _get_driver_path()
+
     # 여러 매물 종류를 요청한 경우 병렬로 처리하여 속도 향상
-    # ThreadPoolExecutor를 사용하여 각 매물 종류별로 독립된 브라우저 인스턴스 실행
     with ThreadPoolExecutor(max_workers=len(property_types)) as executor:
         futures = [
-            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price)
+            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price, driver_path)
             for prop_type in property_types
         ]
         
