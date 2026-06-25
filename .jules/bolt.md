@@ -9,3 +9,11 @@
 ## 2026-05-07 - [Selenium Driver Resolution on Linux]
 **Learning:** `webdriver-manager` can sometimes return a path to a non-executable metadata file (e.g., `THIRD_PARTY_NOTICES.chromedriver`) on Linux. A robust crawler must detect this, locate the actual binary in the same directory, and ensure it has executable permissions via `os.chmod`.
 **Action:** Always verify the returned `driver_path` from `ChromeDriverManager().install()` and apply necessary fixes for Linux environments to ensure reliable browser initialization.
+
+## 2026-06-25 - [Shared ChromeDriver for Parallel Scrapers]
+**Learning:** Initializing `ChromeDriverManager().install()` within multiple threads causes race conditions and redundant network calls. Installing it once in the main thread and passing the driver path to worker threads ensures stability and reduces startup overhead.
+**Action:** Centralize the driver installation logic when using `ThreadPoolExecutor` with Selenium to avoid race conditions and improve efficiency.
+
+## 2026-06-25 - [Optimized Waits over Fixed Sleep]
+**Learning:** Using `time.sleep()` in Selenium scrapers adds guaranteed idle time (e.g., ~6s per crawl), whereas `WebDriverWait` with specific element selectors (including a fast-fail check for "no results") reduces latency significantly while improving reliability.
+**Action:** Prefer `WebDriverWait` with targeted lambda conditions (matching multiple possible result states) to minimize wait times and handle dynamic page loading gracefully.
