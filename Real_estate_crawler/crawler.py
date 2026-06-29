@@ -1,5 +1,7 @@
 import json
 import time
+import os
+from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -46,6 +48,38 @@ class NaverRealEstateCrawler:
         self.driver = None
         self.setup_driver(driver_path)
     
+    @staticmethod
+    def resolve_driver_path(driver_path=None):
+        """플랫폼별 드라이버 경로를 해결하고 필요한 경우 실행 권한을 설정합니다."""
+        try:
+            if not driver_path:
+                driver_path = ChromeDriverManager().install()
+
+            # 플랫폼별 드라이버 경로 처리
+            if os.name == 'nt':  # Windows
+                if not driver_path.endswith(".exe"):
+                    dir_path = os.path.dirname(driver_path)
+                    possible_exe = os.path.join(dir_path, "chromedriver.exe")
+                    if os.path.exists(possible_exe):
+                        driver_path = possible_exe
+            else:  # Linux/Mac
+                if not os.access(driver_path, os.X_OK):
+                    # 때때로 ChromeDriverManager가 메타데이터 파일을 반환할 수 있음
+                    dir_path = os.path.dirname(driver_path)
+                    possible_bin = os.path.join(dir_path, "chromedriver")
+                    if os.path.exists(possible_bin):
+                        driver_path = possible_bin
+
+                    # 실행 권한 부여
+                    try:
+                        os.chmod(driver_path, 0o755)
+                    except Exception as e:
+                        logger.warning(f"드라이버 권한 설정 실패: {e}")
+            return driver_path
+        except Exception as e:
+            logger.error(f"드라이버 경로 해결 실패: {e}")
+            return driver_path
+
     def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
@@ -57,10 +91,7 @@ class NaverRealEstateCrawler:
         
         try:
             if not driver_path:
-                driver_path = _get_driver_path()
-
-            if not driver_path:
-                raise Exception("ChromeDriver path not found")
+                driver_path = self.get_driver_path()
 
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -94,11 +125,14 @@ class NaverRealEstateCrawler:
             
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
+
+            # ⚡ Bolt: Replace static sleep with dynamic wait
+            wait = WebDriverWait(self.driver, 10)
             
             # 검색어 입력
             try:
-                search_input = WebDriverWait(self.driver, 10).until(
-                    EC.visibility_of_element_located((By.CLASS_NAME, "input_search"))
+                search_input = wait.until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "input_search"))
                 )
                 search_keyword = f"{city} {district} {dong}".strip()
                 search_input.clear()
@@ -106,21 +140,13 @@ class NaverRealEstateCrawler:
                 
                 # 첫 번째 검색 결과 클릭
                 try:
-                    suggestion = WebDriverWait(self.driver, 5).until(
+                    suggestion = wait.until(
                         EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
                     )
                     suggestion.click()
                 except:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
-                
-                # 결과 페이지 로드 대기 (매물 리스트 또는 결과 없음 메시지)
-                WebDriverWait(self.driver, 10).until(
-                    lambda d: d.find_elements(By.CLASS_NAME, "list_item") or
-                             d.find_elements(By.CLASS_NAME, "item_section") or
-                             d.find_elements(By.CLASS_NAME, "item") or
-                             d.find_elements(By.CLASS_NAME, "no_result")
-                )
             except Exception as e:
                 logger.error(f"검색 입력 및 대기 실패: {e}")
             
@@ -136,17 +162,13 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # 페이지 로딩 대기 (최대 5초, 이미 search_apartments에서 대기했을 수 있음)
+            # ⚡ Bolt: Replace static sleep with dynamic wait for items to load
+            wait = WebDriverWait(self.driver, 10)
             try:
-                WebDriverWait(self.driver, 5).until(
-                    lambda d: d.find_elements(By.CLASS_NAME, "list_item") or
-                             d.find_elements(By.CLASS_NAME, "item_section") or
-                             d.find_elements(By.CLASS_NAME, "item") or
-                             d.find_elements(By.CLASS_NAME, "no_result")
-                )
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item")))
             except:
-                pass
-
+                logger.warning("매물 리스트 로딩 대기 시간 초과")
+            
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -239,6 +261,7 @@ class NaverRealEstateCrawler:
             
             logger.info(f"빌라 검색 시작: {keyword}")
             self.driver.get(url)
+            # ⚡ Bolt: No static sleep needed here as extract_properties handles waiting
             
             properties = self.extract_properties("all", min_price, max_price)
             return properties
@@ -288,6 +311,9 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
             return []
     
     all_properties = []
+
+    # 병렬 처리를 위해 드라이버 설치를 메인 스레드에서 한 번만 수행
+    driver_path = NaverRealEstateCrawler.get_driver_path()
     
     # 드라이버를 메인 스레드에서 한 번만 설치하여 병렬 실행 시 레이스 컨디션 방지
     driver_path = _get_driver_path()
