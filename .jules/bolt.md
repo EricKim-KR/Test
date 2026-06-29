@@ -5,3 +5,10 @@
 ## 2026-05-22 - [Parallelized Selenium Crawling & Headless Mode]
 **Learning:** For web scrapers using Selenium, parallelizing independent requests (like different property types) with `ThreadPoolExecutor` and independent driver instances significantly reduces total execution time. Additionally, `headless=new` mode reduces resource overhead. A critical race condition was avoided by installing the driver once in the main thread and passing the path to workers.
 **Action:** Use `ThreadPoolExecutor` for concurrent Selenium tasks, ensuring each thread gets its own `webdriver` instance but shares a pre-resolved `driver_path`. Always use headless mode unless visual debugging is required.
+## 2026-05-07 - [Parallelized Real Estate Crawler]
+**Learning:** For web scrapers using Selenium, significant speedup can be achieved by parallelizing independent search tasks (e.g., different property types) using `ThreadPoolExecutor`. Each thread MUST manage its own WebDriver instance to ensure thread safety.
+**Action:** Parallelize independent scraping tasks by launching multiple browser instances, while being mindful of system memory limits.
+
+## 2026-05-07 - [Selenium Driver Resolution on Linux]
+**Learning:** `webdriver-manager` can sometimes return a path to a non-executable metadata file (e.g., `THIRD_PARTY_NOTICES.chromedriver`) on Linux. A robust crawler must detect this, locate the actual binary in the same directory, and ensure it has executable permissions via `os.chmod`.
+**Action:** Always verify the returned `driver_path` from `ChromeDriverManager().install()` and apply necessary fixes for Linux environments to ensure reliable browser initialization.

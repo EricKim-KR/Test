@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,14 +56,30 @@ class NaverRealEstateCrawler:
     def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
-        chrome_options.add_argument("--headless=new")  # 백그라운드 모드 활성화 (성능 향상)
+        chrome_options.add_argument("--headless")  # 백그라운드 모드
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
         try:
-            driver_path = self.resolve_driver_path(driver_path)
+            import os
+            driver_path = ChromeDriverManager().install()
+
+            # webdriver-manager 4.0.1+ might return a path to a text file in some environments
+            # Ensure we point to the actual binary if it's a directory or incorrect file
+            if os.path.isdir(driver_path):
+                driver_path = os.path.join(driver_path, "chromedriver")
+            elif "THIRD_PARTY_NOTICES" in driver_path:
+                dir_path = os.path.dirname(driver_path)
+                possible_binary = os.path.join(dir_path, "chromedriver")
+                if os.path.exists(possible_binary):
+                    driver_path = possible_binary
+            
+            # Ensure the driver is executable
+            if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
+                os.chmod(driver_path, 0o755)
+
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             logger.info(f"WebDriver 초기화 성공: {driver_path}")
@@ -243,26 +260,21 @@ class NaverRealEstateCrawler:
             self.driver.quit()
             logger.info("WebDriver 종료")
 
-def _search_worker(prop_type, city, district, dong, trade_type, min_price, max_price, driver_path):
-    """별도 스레드에서 크롤링을 수행하는 워커 함수"""
-    crawler = None
+def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price):
+    """단일 매물 종류 크롤링을 위한 헬퍼 함수 (병렬 실행용)"""
+    crawler = NaverRealEstateCrawler()
     try:
-        crawler = NaverRealEstateCrawler(driver_path=driver_path)
         if prop_type.upper() == 'APT':
             return crawler.search_apartments(city, district, dong, trade_type, min_price, max_price)
         elif prop_type.upper() == 'VILLA':
             return crawler.search_villas(city, district, dong, min_price, max_price)
         return []
-    except Exception as e:
-        logger.error(f"워커 실행 중 오류 ({prop_type}): {e}")
-        return []
     finally:
-        if crawler:
-            crawler.close()
+        crawler.close()
 
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
-    부동산 매물 크롤링 함수 (병렬 실행 지원)
+    부동산 매물 크롤링 함수 (병렬 실행 최적화)
     
     Args:
         city: 시
@@ -276,26 +288,19 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     Returns:
         매물 정보 리스트
     """
-    if property_types is None:
-        property_types = ['APT']
-    
     if not property_types:
-        return []
-
-    # 메인 스레드에서 드라이버를 한 번만 설치하여 레이스 컨디션 방지
-    driver_path = NaverRealEstateCrawler.resolve_driver_path()
-
+        if property_types is None:
+            property_types = ['APT']
+        else:
+            return []
+    
     all_properties = []
     
-    # ThreadPoolExecutor를 사용하여 여러 매물 종류를 병렬로 크롤링
-    # I/O 바운드 작업(Selenium)이므로 성능 향상 기대
-    with ThreadPoolExecutor(max_workers=min(len(property_types), 4)) as executor:
+    # 여러 매물 종류를 요청한 경우 병렬로 처리하여 속도 향상
+    # ThreadPoolExecutor를 사용하여 각 매물 종류별로 독립된 브라우저 인스턴스 실행
+    with ThreadPoolExecutor(max_workers=len(property_types)) as executor:
         futures = [
-            executor.submit(
-                _search_worker,
-                prop_type, city, district, dong,
-                trade_type, min_price, max_price, driver_path
-            )
+            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price)
             for prop_type in property_types
         ]
         
@@ -304,6 +309,6 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
                 properties = future.result()
                 all_properties.extend(properties)
             except Exception as e:
-                logger.error(f"결과 수집 중 오류: {e}")
-    
+                logger.error(f"병렬 크롤링 중 오류 발생: {e}")
+
     return all_properties
