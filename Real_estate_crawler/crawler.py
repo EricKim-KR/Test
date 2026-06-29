@@ -16,6 +16,33 @@ from concurrent.futures import ThreadPoolExecutor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def _get_driver_path():
+    """ChromeDriverManager를 사용하여 드라이버 경로를 한 번만 설치하고 반환 (병렬 실행 시 레이스 컨디션 방지)"""
+    try:
+        import os
+        driver_path = ChromeDriverManager().install()
+
+        # webdriver-manager 4.0.1+ might return a path to a text file in some environments
+        # Ensure we point to the actual binary if it's a directory or incorrect file
+        if os.path.isdir(driver_path):
+            driver_path = os.path.join(driver_path, "chromedriver")
+        elif "THIRD_PARTY_NOTICES" in driver_path:
+            dir_path = os.path.dirname(driver_path)
+            # Linux에서는 chromedriver, Windows에서는 chromedriver.exe
+            binary_name = "chromedriver" + (".exe" if os.name == 'nt' else "")
+            possible_binary = os.path.join(dir_path, binary_name)
+            if os.path.exists(possible_binary):
+                driver_path = possible_binary
+
+        # Ensure the driver is executable
+        if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
+            os.chmod(driver_path, 0o755)
+
+        return driver_path
+    except Exception as e:
+        logger.error(f"Driver installation failed: {e}")
+        return None
+
 class NaverRealEstateCrawler:
     def __init__(self, driver_path=None):
         self.driver = None
@@ -121,7 +148,7 @@ class NaverRealEstateCrawler:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
             except Exception as e:
-                logger.error(f"검색 입력 실패: {e}")
+                logger.error(f"검색 입력 및 대기 실패: {e}")
             
             # 매물 데이터 크롤링
             properties = self.extract_properties(trade_type, min_price, max_price)
@@ -288,6 +315,9 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     # 병렬 처리를 위해 드라이버 설치를 메인 스레드에서 한 번만 수행
     driver_path = NaverRealEstateCrawler.get_driver_path()
     
+    # 드라이버를 메인 스레드에서 한 번만 설치하여 병렬 실행 시 레이스 컨디션 방지
+    driver_path = _get_driver_path()
+
     # 여러 매물 종류를 요청한 경우 병렬로 처리하여 속도 향상
     # ThreadPoolExecutor를 사용하여 각 매물 종류별로 독립된 브라우저 인스턴스 실행
     with ThreadPoolExecutor(max_workers=len(property_types)) as executor:
