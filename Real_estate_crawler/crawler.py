@@ -1,5 +1,7 @@
 import json
 import time
+import os
+from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,11 +17,43 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NaverRealEstateCrawler:
-    def __init__(self):
+    def __init__(self, driver_path=None):
         self.driver = None
-        self.setup_driver()
+        self.setup_driver(driver_path)
     
-    def setup_driver(self):
+    @staticmethod
+    def resolve_driver_path(driver_path=None):
+        """플랫폼별 드라이버 경로를 해결하고 필요한 경우 실행 권한을 설정합니다."""
+        try:
+            if not driver_path:
+                driver_path = ChromeDriverManager().install()
+
+            # 플랫폼별 드라이버 경로 처리
+            if os.name == 'nt':  # Windows
+                if not driver_path.endswith(".exe"):
+                    dir_path = os.path.dirname(driver_path)
+                    possible_exe = os.path.join(dir_path, "chromedriver.exe")
+                    if os.path.exists(possible_exe):
+                        driver_path = possible_exe
+            else:  # Linux/Mac
+                if not os.access(driver_path, os.X_OK):
+                    # 때때로 ChromeDriverManager가 메타데이터 파일을 반환할 수 있음
+                    dir_path = os.path.dirname(driver_path)
+                    possible_bin = os.path.join(dir_path, "chromedriver")
+                    if os.path.exists(possible_bin):
+                        driver_path = possible_bin
+
+                    # 실행 권한 부여
+                    try:
+                        os.chmod(driver_path, 0o755)
+                    except Exception as e:
+                        logger.warning(f"드라이버 권한 설정 실패: {e}")
+            return driver_path
+        except Exception as e:
+            logger.error(f"드라이버 경로 해결 실패: {e}")
+            return driver_path
+
+    def setup_driver(self, driver_path=None):
         """Selenium WebDriver 초기화"""
         chrome_options = Options()
         chrome_options.add_argument("--headless")  # 백그라운드 모드
