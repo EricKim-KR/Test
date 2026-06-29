@@ -112,29 +112,28 @@ class NaverRealEstateCrawler:
             
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
-            time.sleep(2)
+
+            # ⚡ Bolt: Replace static sleep with dynamic wait
+            wait = WebDriverWait(self.driver, 10)
             
             # 검색어 입력
             try:
-                search_input = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "input_search"))
+                search_input = wait.until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "input_search"))
                 )
                 search_keyword = f"{city} {district} {dong}".strip()
                 search_input.clear()
                 search_input.send_keys(search_keyword)
-                time.sleep(1)
                 
                 # 첫 번째 검색 결과 클릭
                 try:
-                    suggestion = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "keyword_list_item"))
+                    suggestion = wait.until(
+                        EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
                     )
                     suggestion.click()
                 except:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
-                
-                time.sleep(3)
             except Exception as e:
                 logger.error(f"검색 입력 실패: {e}")
             
@@ -150,8 +149,12 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # 페이지 로딩 대기
-            time.sleep(2)
+            # ⚡ Bolt: Replace static sleep with dynamic wait for items to load
+            wait = WebDriverWait(self.driver, 10)
+            try:
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item")))
+            except:
+                logger.warning("매물 리스트 로딩 대기 시간 초과")
             
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
@@ -245,7 +248,7 @@ class NaverRealEstateCrawler:
             
             logger.info(f"빌라 검색 시작: {keyword}")
             self.driver.get(url)
-            time.sleep(3)
+            # ⚡ Bolt: No static sleep needed here as extract_properties handles waiting
             
             properties = self.extract_properties("all", min_price, max_price)
             return properties
