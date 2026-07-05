@@ -62,13 +62,18 @@ def test_extract_properties_filtering(crawler):
 @patch('crawler.NaverRealEstateCrawler.setup_driver')
 @patch('crawler.NaverRealEstateCrawler.search_apartments')
 @patch('crawler.NaverRealEstateCrawler.close')
-def test_crawl_properties_function(mock_close, mock_search, mock_setup):
+@patch('crawler.ChromeDriverManager.install')
+def test_crawl_properties_function(mock_install, mock_close, mock_search, mock_setup):
     """Test the crawl_properties wrapper function."""
+    mock_install.return_value = "mock_path"
     mock_search.return_value = [{"name": "APT 1"}]
 
     results = crawl_properties("서울", "강남구", property_types=['APT'])
 
     assert len(results) == 1
     assert results[0]['name'] == "APT 1"
+
+    # Verify that the methods were called (even though they ran in a thread)
     mock_search.assert_called_once()
     mock_close.assert_called_once()
+    mock_install.assert_called_once()
