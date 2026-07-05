@@ -18,9 +18,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def _get_driver_path():
-    """ChromeDriverManager를 사용하여 드라이버 경로를 한 번만 설치하고 반환 (병렬 실행 시 레이스 컨디션 방지)"""
+    """ChromeDriverManager를 통해 드라이버 설치 및 경로 정규화"""
     try:
-        import os
         driver_path = ChromeDriverManager().install()
 
         # webdriver-manager 4.0.1+ might return a path to a text file in some environments
@@ -29,19 +28,17 @@ def _get_driver_path():
             driver_path = os.path.join(driver_path, "chromedriver")
         elif "THIRD_PARTY_NOTICES" in driver_path:
             dir_path = os.path.dirname(driver_path)
-            # Linux에서는 chromedriver, Windows에서는 chromedriver.exe
-            binary_name = "chromedriver" + (".exe" if os.name == 'nt' else "")
-            possible_binary = os.path.join(dir_path, binary_name)
+            possible_binary = os.path.join(dir_path, "chromedriver")
             if os.path.exists(possible_binary):
                 driver_path = possible_binary
 
-        # Ensure the driver is executable
+        # Ensure the driver is executable (necessary for Linux environments)
         if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
             os.chmod(driver_path, 0o755)
 
         return driver_path
     except Exception as e:
-        logger.error(f"Driver installation failed: {e}")
+        logger.error(f"드라이버 설치/설정 중 오류: {e}")
         return None
 
 class NaverRealEstateCrawler:
@@ -60,14 +57,10 @@ class NaverRealEstateCrawler:
         
         try:
             if not driver_path:
-                driver_path = ChromeDriverManager().install()
-
-                # Linux 환경에서 ChromeDriverManager가 가끔 THIRD_PARTY_NOTICES 같은 텍스트 파일을 반환하는 문제 대응
-                if os.path.basename(driver_path).startswith("THIRD_PARTY_NOTICES"):
-                    dir_path = os.path.dirname(driver_path)
-                    actual_binary = os.path.join(dir_path, "chromedriver")
-                    if os.path.exists(actual_binary):
-                        driver_path = actual_binary
+                driver_path = _get_driver_path()
+            
+            if not driver_path:
+                raise Exception("드라이버 경로를 확보할 수 없습니다.")
 
                 # 실행 권한 부여 (Linux/macOS)
                 if os.name != 'nt' and os.path.exists(driver_path):
@@ -105,9 +98,6 @@ class NaverRealEstateCrawler:
             
             logger.info(f"검색 시작: {city} {district} {dong}")
             self.driver.get("https://land.naver.com/")
-
-            # ⚡ Bolt: Replace static sleep with dynamic wait
-            wait = WebDriverWait(self.driver, 10)
             
             # 검색어 입력
             try:
@@ -127,6 +117,11 @@ class NaverRealEstateCrawler:
                 except:
                     logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
                     search_input.submit()
+                
+                # Wait for search results to load instead of fixed sleep
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item"))
+                )
             except Exception as e:
                 logger.error(f"검색 입력 및 대기 실패: {e}")
             
@@ -142,12 +137,10 @@ class NaverRealEstateCrawler:
     def extract_properties(self, trade_type="all", min_price=None, max_price=None):
         """페이지에서 매물 정보 추출"""
         try:
-            # ⚡ Bolt: Replace static sleep with dynamic wait for items to load
-            wait = WebDriverWait(self.driver, 10)
-            try:
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item")))
-            except:
-                logger.warning("매물 리스트 로딩 대기 시간 초과")
+            # Wait for content to load instead of fixed sleep
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item"))
+            )
             
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
@@ -241,8 +234,8 @@ class NaverRealEstateCrawler:
             
             logger.info(f"빌라 검색 시작: {keyword}")
             self.driver.get(url)
-            # ⚡ Bolt: No static sleep needed here as extract_properties handles waiting
             
+            # extract_properties handles the wait for elements
             properties = self.extract_properties("all", min_price, max_price)
             return properties
         
@@ -257,10 +250,7 @@ class NaverRealEstateCrawler:
             logger.info("WebDriver 종료")
 
 def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, max_price, driver_path=None):
-    """
-    단일 매물 종류 크롤링을 위한 헬퍼 함수
-    각 스레드에서 독립적인 크롤러 인스턴스를 사용합니다.
-    """
+    """단일 매물 종류 크롤링을 위한 헬퍼 함수 (병렬 실행용)"""
     crawler = NaverRealEstateCrawler(driver_path=driver_path)
     try:
         if prop_type.upper() == 'APT':
@@ -298,30 +288,14 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     # 병렬 처리를 위해 드라이버 설치를 메인 스레드에서 한 번만 수행
     driver_path = NaverRealEstateCrawler.get_driver_path()
     
-    # ChromeDriver 사전 설치 (메인 스레드에서 한 번만 수행하여 스레드 간 경쟁 상태 방지)
-    try:
-        driver_path = ChromeDriverManager().install()
-        if os.path.basename(driver_path).startswith("THIRD_PARTY_NOTICES"):
-            dir_path = os.path.dirname(driver_path)
-            actual_binary = os.path.join(dir_path, "chromedriver")
-            if os.path.exists(actual_binary):
-                driver_path = actual_binary
-        
-        if os.name != 'nt' and os.path.exists(driver_path):
-            os.chmod(driver_path, 0o755)
-    except Exception as e:
-        logger.error(f"ChromeDriver 설치 실패: {e}")
-        driver_path = None
+    # Pre-install driver once and share path to avoid redundant I/O and race conditions in threads
+    driver_path = _get_driver_path()
 
-    # ThreadPoolExecutor를 사용하여 매물 종류별로 병렬 크롤링 수행
-    # ⚡ Bolt Optimization:
-    # 1. 병렬 처리: APT, VILLA 등 여러 매물 종류 검색 시 독립적인 드라이버 인스턴스로 병렬 실행하여 응답 시간 단축.
-    #    (매물 종류가 2개 이상일 때 약 1.5x ~ 2x 속도 개선 예상)
-    # 2. Linux 호환성: ChromeDriverManager의 비정상 경로 반환 대응 및 실행 권한 자동 설정 로직 추가.
-    # 3. 안정성: 메인 스레드에서 드라이버를 미리 설치하여 멀티스레드 환경에서의 파일 시스템 충돌 방지.
+    # 여러 매물 종류를 요청한 경우 병렬로 처리하여 속도 향상
+    # ThreadPoolExecutor를 사용하여 각 매물 종류별로 독립된 브라우저 인스턴스 실행
     with ThreadPoolExecutor(max_workers=len(property_types)) as executor:
         futures = [
-            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price, driver_path)
+            executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price, driver_path=driver_path)
             for prop_type in property_types
         ]
 
