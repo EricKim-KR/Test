@@ -55,12 +55,17 @@ class NaverRealEstateCrawler:
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         
+        # ⚡ Bolt: Optimization - Set page load strategy to 'eager' to speed up page load
+        # This makes Selenium wait only until 'DOMContentLoaded' event is fired.
+        chrome_options.page_load_strategy = 'eager'
+
+        # ⚡ Bolt: Optimization - Disable images to reduce bandwidth and rendering time
+        prefs = {"profile.managed_default_content_settings.images": 2}
+        chrome_options.add_experimental_option("prefs", prefs)
+
         try:
             if not driver_path:
                 driver_path = _get_driver_path()
-            
-            if not driver_path:
-                raise Exception("드라이버 경로를 확보할 수 없습니다.")
 
                 # 실행 권한 부여 (Linux/macOS)
                 if os.name != 'nt' and os.path.exists(driver_path):
@@ -285,10 +290,7 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
     
     all_properties = []
 
-    # 병렬 처리를 위해 드라이버 설치를 메인 스레드에서 한 번만 수행
-    driver_path = NaverRealEstateCrawler.get_driver_path()
-    
-    # Pre-install driver once and share path to avoid redundant I/O and race conditions in threads
+    # 드라이버를 메인 스레드에서 한 번만 설치하여 병렬 실행 시 레이스 컨디션 방지
     driver_path = _get_driver_path()
 
     # 여러 매물 종류를 요청한 경우 병렬로 처리하여 속도 향상
