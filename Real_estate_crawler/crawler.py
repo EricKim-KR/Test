@@ -1,5 +1,7 @@
 import json
 import time
+import os
+from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -60,6 +62,10 @@ class NaverRealEstateCrawler:
             if not driver_path:
                 raise Exception("드라이버 경로를 확보할 수 없습니다.")
 
+                # 실행 권한 부여 (Linux/macOS)
+                if os.name != 'nt' and os.path.exists(driver_path):
+                    os.chmod(driver_path, 0o755)
+            
             service = Service(driver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_options)
             logger.info(f"WebDriver 초기화 성공: {driver_path}")
@@ -95,8 +101,8 @@ class NaverRealEstateCrawler:
             
             # 검색어 입력
             try:
-                search_input = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "input_search"))
+                search_input = wait.until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "input_search"))
                 )
                 search_keyword = f"{city} {district} {dong}".strip()
                 search_input.clear()
@@ -104,8 +110,8 @@ class NaverRealEstateCrawler:
                 
                 # 첫 번째 검색 결과 클릭
                 try:
-                    suggestion = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "keyword_list_item"))
+                    suggestion = wait.until(
+                        EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
                     )
                     suggestion.click()
                 except:
@@ -117,7 +123,7 @@ class NaverRealEstateCrawler:
                     EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item"))
                 )
             except Exception as e:
-                logger.error(f"검색 입력 실패: {e}")
+                logger.error(f"검색 입력 및 대기 실패: {e}")
             
             # 매물 데이터 크롤링
             properties = self.extract_properties(trade_type, min_price, max_price)
@@ -257,7 +263,7 @@ def _crawl_single_type(prop_type, city, district, dong, trade_type, min_price, m
 
 def crawl_properties(city, district, dong="", property_types=None, trade_type="all", min_price=None, max_price=None):
     """
-    부동산 매물 크롤링 함수 (병렬 실행 최적화)
+    부동산 매물 크롤링 함수 (병렬 처리 최적화)
     
     Args:
         city: 시
@@ -278,6 +284,9 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
             return []
     
     all_properties = []
+
+    # 병렬 처리를 위해 드라이버 설치를 메인 스레드에서 한 번만 수행
+    driver_path = NaverRealEstateCrawler.get_driver_path()
     
     # Pre-install driver once and share path to avoid redundant I/O and race conditions in threads
     driver_path = _get_driver_path()
@@ -289,7 +298,7 @@ def crawl_properties(city, district, dong="", property_types=None, trade_type="a
             executor.submit(_crawl_single_type, prop_type, city, district, dong, trade_type, min_price, max_price, driver_path=driver_path)
             for prop_type in property_types
         ]
-        
+
         for future in futures:
             try:
                 properties = future.result()
