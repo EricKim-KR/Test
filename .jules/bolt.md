@@ -33,6 +33,10 @@
 **Learning:** Resolving the driver binary path once in the main thread and passing it to worker threads avoids redundant I/O and network checks by `ChromeDriverManager`. Additionally, removing legacy `time.sleep()` calls in favor of existing `WebDriverWait` significantly reduces idle time during crawling.
 **Action:** Pre-calculate setup parameters in the main thread for parallel tasks, and regularly audit for hardcoded delays that can be replaced with event-driven waits.
 
+## 2024-05-29 - [Direct Search URL Navigation]
+**Learning:** For web scrapers where the search URL is predictable, navigating directly to the search results page (`https://land.naver.com/search/search.naver?query={keyword}`) is significantly faster than interacting with the UI (typing in a search bar, waiting for suggestions, and clicking). This avoids redundant page loads and complex synchronization with dynamic UI elements.
+**Action:** Always investigate if an application supports direct URL parameters for its search or filter functionality to bypass slow UI-based interaction paths.
+
 ## 2024-05-28 - [Eager Page Load & Image Disabling]
 **Learning:** For data-only scraping where images are not required, setting `page_load_strategy = 'eager'` (waits for `DOMContentLoaded`) and disabling image loading via Chrome preferences significantly reduces total crawl time (e.g., from ~38s to ~12s in this environment). This avoids waiting for slow assets that don't impact the scrape results.
 **Action:** Always enable `eager` page load strategy and disable image loading for Selenium crawlers focused on text/data extraction to minimize network overhead and rendering time.

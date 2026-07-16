@@ -11,8 +11,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import logging
-import os
-from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -98,39 +97,16 @@ class NaverRealEstateCrawler:
             city = city.replace('시', '').strip()
             district = district.replace('구', '').strip()
             
-            # 네이버 부동산 검색 URL 구성
-            search_url = f"https://land.naver.com/article/division/34010000?ms=37.4979,127.0276,15&a=APT&b=A1&c=&d=&e=&f=&g=&h=&i=&j=&k=&l=&m=&n=&o=&p=&q=&r=&s=&t=&aa=&bb=&cc=&dd=&ee=&ff=&showR=Y&scortOrder=dddsc&one=1&page=1"
+            # ⚡ Bolt: Optimization - Navigate directly to search results instead of interacting with the search bar.
+            # This avoids multiple page loads and slow UI interactions.
+            search_keyword = f"{city} {district} {dong} 아파트".strip()
+            encoded_keyword = quote(search_keyword)
+            search_url = f"https://land.naver.com/search/search.naver?query={encoded_keyword}"
             
-            logger.info(f"검색 시작: {city} {district} {dong}")
-            self.driver.get("https://land.naver.com/")
+            logger.info(f"검색 시작 (아파트): {search_keyword}")
+            self.driver.get(search_url)
             
-            # 검색어 입력
-            try:
-                search_input = wait.until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, "input_search"))
-                )
-                search_keyword = f"{city} {district} {dong}".strip()
-                search_input.clear()
-                search_input.send_keys(search_keyword)
-                
-                # 첫 번째 검색 결과 클릭
-                try:
-                    suggestion = wait.until(
-                        EC.element_to_be_clickable((By.CLASS_NAME, "keyword_list_item"))
-                    )
-                    suggestion.click()
-                except:
-                    logger.warning("검색 결과 자동완성 없음, 엔터로 직접 검색")
-                    search_input.submit()
-                
-                # Wait for search results to load instead of fixed sleep
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item"))
-                )
-            except Exception as e:
-                logger.error(f"검색 입력 및 대기 실패: {e}")
-            
-            # 매물 데이터 크롤링
+            # 매물 데이터 크롤링 (extract_properties handles the wait for elements)
             properties = self.extract_properties(trade_type, min_price, max_price)
             
             return properties
@@ -234,10 +210,12 @@ class NaverRealEstateCrawler:
     def search_villas(self, city, district, dong="", min_price=None, max_price=None):
         """빌라/연립주택 검색"""
         try:
-            keyword = f"{city} {district} {dong}".strip()
-            url = f"https://land.naver.com/article/division/34010300?q={keyword}&ms=37.4979,127.0276,15&a=VILLA&b=A1"
+            # ⚡ Bolt: Optimization - Navigate directly to search results instead of using deep link with complex params.
+            search_keyword = f"{city} {district} {dong} 빌라".strip()
+            encoded_keyword = quote(search_keyword)
+            url = f"https://land.naver.com/search/search.naver?query={encoded_keyword}"
             
-            logger.info(f"빌라 검색 시작: {keyword}")
+            logger.info(f"검색 시작 (빌라): {search_keyword}")
             self.driver.get(url)
             
             # extract_properties handles the wait for elements
