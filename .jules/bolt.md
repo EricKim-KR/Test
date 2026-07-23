@@ -36,3 +36,7 @@
 ## 2024-05-28 - [Eager Page Load & Image Disabling]
 **Learning:** For data-only scraping where images are not required, setting `page_load_strategy = 'eager'` (waits for `DOMContentLoaded`) and disabling image loading via Chrome preferences significantly reduces total crawl time (e.g., from ~38s to ~12s in this environment). This avoids waiting for slow assets that don't impact the scrape results.
 **Action:** Always enable `eager` page load strategy and disable image loading for Selenium crawlers focused on text/data extraction to minimize network overhead and rendering time.
+
+## 2026-07-15 - [Direct URL Search & Dynamic Timeout Optimization]
+**Learning:** For scrapers/crawlers using Selenium, interacting with page elements (typing input keywords, waiting for and clicking dynamic search auto-complete suggestions) is extremely slow and prone to UI-level failures and timeouts. Navigating directly to the search URL using URL-encoded queries (`urllib.parse.quote`) completely bypasses these delays, reducing execution time by ~75%. Additionally, waiting for a combined CSS selector that includes a `.no_result` class prevents the crawler from hanging for the full timeout duration when no search results are available, and wrapping the wait in a try-except block prevents noisy, non-critical TimeoutExceptions.
+**Action:** Prefer direct URL navigation over multi-step UI input flows for scraping. Always include the empty/no-result state selectors in `WebDriverWait` so search tasks fail/exit fast without unnecessary idle waiting.

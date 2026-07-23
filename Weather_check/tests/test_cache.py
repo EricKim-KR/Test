@@ -35,7 +35,7 @@ def test_get_weather_caching(app, mocker):
             "list": []
         }
 
-        mock_get = mocker.patch('requests.get')
+        mock_get = mocker.patch.object(WeatherService._session, 'get')
         mock_get.side_effect = [mock_current_resp, mock_forecast_resp]
 
         # First call - should call requests.get
@@ -66,7 +66,7 @@ def test_get_weather_cache_expiration(app, mocker):
         mock_forecast_resp.status_code = 200
         mock_forecast_resp.json.return_value = {"list": []}
 
-        mock_get = mocker.patch('requests.get')
+        mock_get = mocker.patch.object(WeatherService._session, 'get')
         mock_get.side_effect = [
             mock_current_resp, mock_forecast_resp, # First call
             mock_current_resp, mock_forecast_resp  # Second call after expiration

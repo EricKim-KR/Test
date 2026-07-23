@@ -12,7 +12,7 @@ def test_index_get(client):
     response = client.get('/')
     assert response.status_code == 200
     assert b'Weather Check' in response.data
-    assert b'Enter a city name above to get started!' in response.data
+    assert '위에 도시명을 입력하여 시작하세요!'.encode('utf-8') in response.data
 
 @patch('app.weather_service.WeatherService.get_weather')
 def test_index_post_success(mock_get_weather, client):
