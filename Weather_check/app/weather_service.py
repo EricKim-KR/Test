@@ -9,6 +9,9 @@ class WeatherService:
     _cache = {}
     _session = requests.Session()
     
+    # ⚡ Bolt: Optimization - Class-level ThreadPoolExecutor to prevent creating and shutting down threads on every request.
+    _executor = ThreadPoolExecutor(max_workers=10)
+
     # 한글 도시명 → 영문 도시명 매핑
     KOREAN_CITY_MAP = {
         '서울': 'Seoul',
@@ -34,7 +37,6 @@ class WeatherService:
         '로스앤젤레스': 'Los Angeles',
         '런던': 'London',
         '파리': 'Paris',
-        '도쿄': 'Tokyo',
         '베이징': 'Beijing',
         '상하이': 'Shanghai',
         '홍콩': 'Hong Kong',
@@ -88,11 +90,8 @@ class WeatherService:
                 return city_name, city_name
         
         # If English, try to find Korean equivalent for display
-        korean_name = None
-        for korean, english in WeatherService.KOREAN_CITY_MAP.items():
-            if english.lower() == city_name.lower():
-                korean_name = korean
-                break
+        # ⚡ Bolt: Optimization - Use precomputed O(1) English-to-Korean map instead of O(N) loop lookup
+        korean_name = ENGLISH_TO_KOREAN_MAP.get(city_name.lower())
         
         return city_name, korean_name
     
@@ -140,24 +139,23 @@ class WeatherService:
                 return {'error': 'API 키가 설정되지 않았습니다'}
             
             # Use ThreadPoolExecutor to parallelize API calls
-            # Extract current_app config before entering threads
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                future_current = executor.submit(
-                    WeatherService._get_current_weather,
-                    city, api_key, base_url, original_city
-                )
-                future_forecast = executor.submit(
-                    WeatherService._get_forecast,
-                    city, api_key, base_url
-                )
+            # ⚡ Bolt: Optimization - Reuse the class-level shared ThreadPoolExecutor to avoid thread creation overhead
+            future_current = WeatherService._executor.submit(
+                WeatherService._get_current_weather,
+                city, api_key, base_url, original_city
+            )
+            future_forecast = WeatherService._executor.submit(
+                WeatherService._get_forecast,
+                city, api_key, base_url
+            )
 
-                current_weather = future_current.result()
-                if 'error' in current_weather:
-                    return current_weather
+            current_weather = future_current.result()
+            if 'error' in current_weather:
+                return current_weather
 
-                forecast = future_forecast.result()
-                if 'error' in forecast:
-                    return forecast
+            forecast = future_forecast.result()
+            if 'error' in forecast:
+                return forecast
             
             result = {
                 'current': current_weather,
@@ -266,3 +264,6 @@ class WeatherService:
             return {'error': '요청 시간 초과'}
         except Exception as e:
             return {'error': f'예보 조회 오류: {str(e)}'}
+
+# ⚡ Bolt: Optimization - Precompute lowercase English-to-Korean lookup map outside class to avoid class scope / list comprehension limitations in Python
+ENGLISH_TO_KOREAN_MAP = {english.lower(): korean for korean, english in WeatherService.KOREAN_CITY_MAP.items()}
