@@ -88,11 +88,8 @@ class WeatherService:
                 return city_name, city_name
         
         # If English, try to find Korean equivalent for display
-        korean_name = None
-        for korean, english in WeatherService.KOREAN_CITY_MAP.items():
-            if english.lower() == city_name.lower():
-                korean_name = korean
-                break
+        # ⚡ Bolt: Optimization - O(1) dictionary lookup instead of O(N) loop scan
+        korean_name = ENGLISH_TO_KOREAN_MAP.get(city_name.lower())
         
         return city_name, korean_name
     
@@ -266,3 +263,6 @@ class WeatherService:
             return {'error': '요청 시간 초과'}
         except Exception as e:
             return {'error': f'예보 조회 오류: {str(e)}'}
+
+# Precomputed map for O(1) English-to-Korean city name lookup
+ENGLISH_TO_KOREAN_MAP = {v.lower(): k for k, v in WeatherService.KOREAN_CITY_MAP.items()}
