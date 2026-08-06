@@ -40,3 +40,7 @@
 ## 2026-07-15 - [Direct URL Search & Dynamic Timeout Optimization]
 **Learning:** For scrapers/crawlers using Selenium, interacting with page elements (typing input keywords, waiting for and clicking dynamic search auto-complete suggestions) is extremely slow and prone to UI-level failures and timeouts. Navigating directly to the search URL using URL-encoded queries (`urllib.parse.quote`) completely bypasses these delays, reducing execution time by ~75%. Additionally, waiting for a combined CSS selector that includes a `.no_result` class prevents the crawler from hanging for the full timeout duration when no search results are available, and wrapping the wait in a try-except block prevents noisy, non-critical TimeoutExceptions.
 **Action:** Prefer direct URL navigation over multi-step UI input flows for scraping. Always include the empty/no-result state selectors in `WebDriverWait` so search tasks fail/exit fast without unnecessary idle waiting.
+
+## 2026-07-22 - [Optimized Lookup for City Name Mapping]
+**Learning:** Using an O(N) loop to scan dictionary values for English-to-Korean lookup is a performance anti-pattern. Precomputing a reversed lowercase mapping (`ENGLISH_TO_KOREAN_MAP`) at the module scope enables highly efficient O(1) dictionary lookups without class-scope dictionary comprehension restrictions.
+**Action:** Always precompute lookups at module level when converting values, converting linear scans to O(1) dictionary lookups.
