@@ -44,3 +44,11 @@
 ## 2026-07-28 - [Class Scope Limitations with Comprehensions in Python]
 **Learning:** In Python 3, class-level variables (like `KOREAN_CITY_MAP`) are not accessible inside list/dict/set comprehensions within the same class body because comprehensions are compiled as nested functions with their own local scopes. While the outermost iterable expression is evaluated in class scope, referring to the class name or nested scopes can lead to errors. Precomputing maps outside the class body completely bypasses any scope/comprehension limitations.
 **Action:** Always define precomputed lookup maps outside the class scope or build them in an initialization method to ensure clean namespace resolution across all Python 3 versions.
+
+## 2026-07-29 - [BeautifulSoup Selector Consolidation]
+**Learning:** Chaining sequential `.find()` or `.find_all()` fallback lookups causes BeautifulSoup to perform multiple full scans of the DOM tree. Consolidating sequential tag and class fallbacks into a single CSS selector query using `.select()` or `.select_one()` optimizes tree traversal and reduces method call overhead by up to ~66% per parsed item.
+**Action:** Avoid chained `or` fallback find calls on parsed BeautifulSoup objects; instead, combine them into single CSS selector lists with commas in `.select_one()` or `.select()`.
+
+## 2026-07-29 - [ChromeDriver Path Caching]
+**Learning:** Checking the local cache and resolving the ChromeDriver version with `ChromeDriverManager().install()` on every crawl introduces disk I/O and potential network verification latency. Storing the driver path in a module-level variable after the first resolution bypasses this entirely on subsequent runs. This requires resetting the global path cache in unit tests to preserve testing isolation.
+**Action:** Cache the driver binary path for Selenium executions, and explicitly reset the cache variable during test setup/mocking to ensure unit tests remain isolated.
