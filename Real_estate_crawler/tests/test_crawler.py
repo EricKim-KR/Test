@@ -65,6 +65,8 @@ def test_extract_properties_filtering(crawler):
 @patch('crawler.ChromeDriverManager.install')
 def test_crawl_properties_function(mock_install, mock_close, mock_search, mock_setup):
     """Test the crawl_properties wrapper function."""
+    import crawler
+    crawler._cached_driver_path = None
     mock_install.return_value = "mock_path"
     mock_search.return_value = [{"name": "APT 1"}]
 

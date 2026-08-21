@@ -44,3 +44,7 @@
 ## 2026-07-28 - [Class Scope Limitations with Comprehensions in Python]
 **Learning:** In Python 3, class-level variables (like `KOREAN_CITY_MAP`) are not accessible inside list/dict/set comprehensions within the same class body because comprehensions are compiled as nested functions with their own local scopes. While the outermost iterable expression is evaluated in class scope, referring to the class name or nested scopes can lead to errors. Precomputing maps outside the class body completely bypasses any scope/comprehension limitations.
 **Action:** Always define precomputed lookup maps outside the class scope or build them in an initialization method to ensure clean namespace resolution across all Python 3 versions.
+
+## 2026-08-12 - [Safe Suffix Stripping & Driver Path Caching]
+**Learning:** When normalizing Korean administrative region names (like "시흥시" or "구로구"), using `str.replace('시', '')` or `str.replace('구', '')` corrupts place names containing those characters. Using `str.removesuffix()` safely strips administrative suffixes. Additionally, caching the resolved ChromeDriver executable path across crawls prevents repeated version check overhead with `ChromeDriverManager`.
+**Action:** Use `removesuffix()` instead of `replace()` for trailing character removal in string normalizations, and cache driver binary paths in module scope.

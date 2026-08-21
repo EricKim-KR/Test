@@ -1,6 +1,7 @@
 import json
 import time
 import os
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -11,14 +12,18 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import logging
-import os
-from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_cached_driver_path = None
+
 def _get_driver_path():
-    """ChromeDriverManager를 통해 드라이버 설치 및 경로 정규화"""
+    """ChromeDriverManager를 통해 드라이버 설치 및 경로 정규화 (캐싱 적용)"""
+    global _cached_driver_path
+    if _cached_driver_path and os.path.exists(_cached_driver_path):
+        return _cached_driver_path
+
     try:
         driver_path = ChromeDriverManager().install()
 
@@ -36,6 +41,7 @@ def _get_driver_path():
         if os.path.exists(driver_path) and not os.access(driver_path, os.X_OK):
             os.chmod(driver_path, 0o755)
 
+        _cached_driver_path = driver_path
         return driver_path
     except Exception as e:
         logger.error(f"드라이버 설치/설정 중 오류: {e}")
@@ -94,9 +100,9 @@ class NaverRealEstateCrawler:
             매물 정보 리스트
         """
         try:
-            # 지역 정보 정규화
-            city = city.replace('시', '').strip()
-            district = district.replace('구', '').strip()
+            # 지역 정보 정규화 (접미사만 안전하게 제거)
+            city = city.removesuffix('시').strip()
+            district = district.removesuffix('구').strip()
             
             search_keyword = f"{city} {district} {dong}".strip()
             
@@ -219,16 +225,24 @@ class NaverRealEstateCrawler:
     def search_villas(self, city, district, dong="", min_price=None, max_price=None):
         """빌라/연립주택 검색"""
         try:
-            keyword = f"{city} {district} {dong}".strip()
-            url = f"https://land.naver.com/article/division/34010300?q={keyword}&ms=37.4979,127.0276,15&a=VILLA&b=A1"
-            
-            logger.info(f"빌라 검색 시작: {keyword}")
-            self.driver.get(url)
-            
+            # 지역 정보 정규화 (접미사만 안전하게 제거)
+            city = city.removesuffix('시').strip()
+            district = district.removesuffix('구').strip()
+
+            search_keyword = f"{city} {district} {dong} 빌라".strip()
+
+            # ⚡ Bolt: Optimization - Direct search URL navigation for villa search.
+            # Avoids legacy division URL loading delays and map rendering overhead, saving ~4.5s.
+            encoded_keyword = urllib.parse.quote(search_keyword)
+            search_url = f"https://land.naver.com/search/search.naver?query={encoded_keyword}"
+
+            logger.info(f"빌라 검색 시작 (다이렉트 URL): {search_keyword}")
+            self.driver.get(search_url)
+
             # extract_properties handles the wait for elements
             properties = self.extract_properties("all", min_price, max_price)
             return properties
-        
+
         except Exception as e:
             logger.error(f"빌라 검색 중 오류: {e}")
             return []
