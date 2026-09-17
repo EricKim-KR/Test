@@ -259,8 +259,12 @@ class WeatherService:
                         'humidity': item['main']['humidity'],
                         'wind_speed': round(item['wind']['speed'], 1)
                     })
+                    # ⚡ Bolt: Optimization - Early break once 5 forecast days are collected
+                    # Avoids iterating through and parsing remaining items in the 40-item API list
+                    if len(forecast_list) == 5:
+                        break
             
-            return forecast_list[:5]  # Return 5-day forecast
+            return forecast_list  # Return 5-day forecast
         
         except requests.exceptions.HTTPError as e:
             if response.status_code == 401:
