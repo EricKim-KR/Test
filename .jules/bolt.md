@@ -48,3 +48,7 @@
 ## 2026-08-12 - [Safe Suffix Stripping & Driver Path Caching]
 **Learning:** When normalizing Korean administrative region names (like "시흥시" or "구로구"), using `str.replace('시', '')` or `str.replace('구', '')` corrupts place names containing those characters. Using `str.removesuffix()` safely strips administrative suffixes. Additionally, caching the resolved ChromeDriver executable path across crawls prevents repeated version check overhead with `ChromeDriverManager`.
 **Action:** Use `removesuffix()` instead of `replace()` for trailing character removal in string normalizations, and cache driver binary paths in module scope.
+
+## 2026-08-25 - [BeautifulSoup CSS Selectors vs Sequential Find & Early Loop Break]
+**Learning:** Replacing BeautifulSoup's direct `.find()` calls with `.select_one()` using `soupsieve` for simple tag/class lookups introduced ~1.2x overhead due to CSS selector parsing/compilation complexity in Python. Direct `.find()` calls are faster for simple tag lookups. However, in data extraction loops processing API responses (like OpenWeatherMap 40-item forecast payloads), adding an early `break` once target count (`len == 5`) is reached avoids processing ~35 redundant items per call.
+**Action:** Always benchmark BeautifulSoup `.find()` vs `.select_one()` before refactoring, and always add early `break` statements when parsing fixed-length targets from larger API response arrays.
