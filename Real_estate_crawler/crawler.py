@@ -132,8 +132,10 @@ class NaverRealEstateCrawler:
             # Including class '.no_result' avoids timing out on pages with no matching items.
             # Using try-except prevents logging large stack traces on timeout, returning gracefully instead.
             try:
+                # ⚡ Bolt: Optimization - Include search table rows (.article_title, .td_price) in wait condition
+                # to trigger immediately when Naver Real Estate search tables load
                 WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item, .no_result, .no_results, .zero_result"))
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".list_item, .item_section, .item_wrapper, .item, .article_title, td.td_price, .no_result, .no_results, .zero_result"))
                 )
             except Exception:
                 logger.warning("매물 리스트 대기 시간 초과 또는 결과 없음")
@@ -143,7 +145,7 @@ class NaverRealEstateCrawler:
             
             properties = []
             
-            # 매물 리스트 항목 추출 (다양한 선택자 시도)
+            # 매물 리스트 항목 추출 (다양한 선택자 및 테이블 행 시도)
             items = soup.find_all('div', class_='list_item')
             if not items:
                 items = soup.find_all('article', class_='item_section')
@@ -151,6 +153,8 @@ class NaverRealEstateCrawler:
                 items = soup.find_all('div', class_='item_wrapper')
             if not items:
                 items = soup.find_all('li', class_='item')
+            if not items:
+                items = soup.find_all('tr')
             
             if not items:
                 logger.warning("매물 리스트를 찾을 수 없음")
@@ -160,17 +164,19 @@ class NaverRealEstateCrawler:
             
             for item in items[:50]:  # 최대 50개 항목
                 try:
-                    # 매물명 - 다양한 셀렉터 시도
+                    # 매물명 - 다양한 셀렉터 시도 (테이블 셀 포함)
                     name_elem = item.find('span', class_='name') or \
                                item.find('a', class_='name') or \
                                item.find('strong', class_='name') or \
                                item.find('p', class_='info_title') or \
-                               item.find(class_='complex_name')
+                               item.find(class_='complex_name') or \
+                               item.find('td', class_='article_title')
                     name = name_elem.get_text(strip=True) if name_elem else "정보 없음"
                     
-                    # 가격 추출
+                    # 가격 추출 (테이블 셀 포함)
                     price_elem = item.find('span', class_='price') or \
-                                item.find('strong', class_='price')
+                                item.find('strong', class_='price') or \
+                                item.find('td', class_='td_price')
                     price = price_elem.get_text(strip=True) if price_elem else "정보 없음"
                     
                     # 거래 타입
